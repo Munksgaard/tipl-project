@@ -58,3 +58,12 @@ genScene :: Integer -> Scene
 genScene n =
     let discs = genPyramid n
     in (discs, contacts discs)
+
+-- Finds indices of bodies adjacent to bodies in a contact
+-- Assumes (i1, i2) == (j1, j2) iff it is the same contact
+adjConts :: Contact -> [Contact] -> [Int]
+adjConts c1@(an1, cd1) conts =
+   nub $ map otherContact $ filter adj conts
+    where
+      otherContact (an2, cd2) = if (an1 == an2 || cd1 == an2) then cd2 else an2
+      adj c2@(an2, cd2) = (an1 == an2 || an1 == cd2 || cd1 == an2 || cd1 == cd2) && c1 /= c2
