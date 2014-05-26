@@ -40,7 +40,7 @@ dist :: Disc -> Disc -> Double
 dist (x1, y1) (x2, y2) =
     sqrt ((x1 - x2)^2 + (y1 - y2)^2)
 
-contacts :: [Disc] -> [(Int, Int)]
+contacts :: [Disc] -> [Contact]
 contacts discs = contacts' discs 0
     where
       contacts' [] _ = []
