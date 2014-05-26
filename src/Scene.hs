@@ -16,12 +16,12 @@ genPyramid levels =
                         ypos $ fromInteger level) | x <- [0 .. level]]
           ypos level = sqrt((2 * level)^2 - level^2) + 1
           xpos level i = fromInteger levels - level + 2 * i
-                   
+
 renderDiscs :: Double -> [Disc] -> C.Render ()
 renderDiscs scale discs = do
   C.setSourceRGB 0 0 0
   C.setLineWidth 1
-
+  --
   let scaled = map (\(x, y) -> (x * scale, y * scale)) discs
   mapM_ renderDisc scaled
     where
@@ -36,10 +36,12 @@ discsToSVG discs filename =
       renderer surface =
         C.renderWith surface $ renderDiscs 10 $ genPyramid discs
 
+-- Standard euclidian 2d distance
 dist :: Disc -> Disc -> Double
 dist (x1, y1) (x2, y2) =
     sqrt ((x1 - x2)^2 + (y1 - y2)^2)
 
+-- Returns a list of contacts for the given set of discs.
 contacts :: [Disc] -> [Contact]
 contacts discs = contacts' discs 0
     where
