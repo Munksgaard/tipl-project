@@ -7,6 +7,10 @@ type Disc = (Double, Double) -- (x, y)
 type Contact = (Int, Int)
 type Scene = ([Disc], [Contact])
 
+-- Error margin for distances
+epsilon :: Double
+epsilon = 0.0001
+
 -- Assume unit radius
 genPyramid :: Integer -> [Disc]
 genPyramid levels =
@@ -48,7 +52,7 @@ contacts discs = contacts' discs 0
       contacts' [] _ = []
       contacts' (x:xs) i = map (\d -> (i, 1 + i + d)) (findIndices (contactp x) xs)
                    ++ contacts' xs (1 + i)
-      contactp d1 d2 = dist d1 d2 <= 2
+      contactp d1 d2 = dist d1 d2 <= 2 + epsilon
 
 genScene :: Integer -> Scene
 genScene n =
