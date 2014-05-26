@@ -57,4 +57,4 @@ contacts discs = contacts' discs 0
 genScene :: Integer -> Scene
 genScene n =
     let discs = genPyramid n
-    in (discs, contacts(discs))
+    in (discs, contacts discs)
