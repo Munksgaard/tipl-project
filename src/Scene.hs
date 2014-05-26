@@ -1,8 +1,10 @@
 module Scene where
 
 import qualified Graphics.Rendering.Cairo as C
+import Data.List
 
 type Disc = (Double, Double) -- (x, y)
+type Contact = (Int, Int)
 
 -- Assume unit radius
 genPyramid :: Integer -> [Disc]
@@ -32,3 +34,15 @@ discsToSVG discs filename =
     where
       renderer surface =
         C.renderWith surface $ renderDiscs 10 $ genPyramid discs
+
+dist :: Disc -> Disc -> Double
+dist (x1, y1) (x2, y2) =
+    sqrt ((x1 - x2)^2 + (y1 - y2)^2)
+
+contacts :: [Disc] -> [(Int, Int)]
+contacts discs = contacts' discs 0
+    where
+      contacts' [] _ = []
+      contacts' (x:xs) i = map (\d -> (i, 1 + i + d)) (findIndices (contactp x) xs)
+                   ++ contacts' xs (1 + i)
+      contactp d1 d2 = dist d1 d2 <= 2
