@@ -5,6 +5,7 @@ import Data.List
 
 type Disc = (Double, Double) -- (x, y)
 type Contact = (Int, Int)
+type Scene = ([Disc], [Contact])
 
 -- Assume unit radius
 genPyramid :: Integer -> [Disc]
@@ -46,3 +47,8 @@ contacts discs = contacts' discs 0
       contacts' (x:xs) i = map (\d -> (i, 1 + i + d)) (findIndices (contactp x) xs)
                    ++ contacts' xs (1 + i)
       contactp d1 d2 = dist d1 d2 <= 2
+
+genScene :: Integer -> Scene
+genScene n =
+    let discs = genPyramid n
+    in (discs, contacts(discs))
