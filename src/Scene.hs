@@ -53,8 +53,9 @@ contacts :: [Disc] -> [Contact]
 contacts discs = contacts' discs 0
     where
       contacts' [] _ = []
-      contacts' (x:xs) i = map (\d -> (i, 1 + i + d)) (findIndices (contactp x) xs)
-                   ++ contacts' xs (1 + i)
+      contacts' (x:xs) i = map (\d -> (i, 1 + i + d))
+                           (findIndices (contactp x) xs)
+                           ++ contacts' xs (1 + i)
       contactp d1 d2 = dist d1 d2 <= 2 + epsilon
 
 genScene :: Integer -> Scene
@@ -68,8 +69,10 @@ adjConts :: Contact -> [Contact] -> [Int]
 adjConts c1@(an1, cd1) conts =
    nub $ map otherContact $ filter adj conts
     where
-      otherContact (an2, cd2) = if (an1 == an2 || cd1 == an2) then cd2 else an2
-      adj c2@(an2, cd2) = (an1 == an2 || an1 == cd2 || cd1 == an2 || cd1 == cd2) && c1 /= c2
+      otherContact (an2, cd2) = if an1 == an2 || cd1 == an2 then cd2 else an2
+      adj c2@(an2, cd2) = (an1 == an2 || an1 == cd2 || cd1 == an2 || cd1 == cd2)
+                          && c1 /= c2
+
 -- (Somewhat pretty) print matrix
 printMatrix :: Show a => Matrix a -> IO ()
 printMatrix = mapM_ print
