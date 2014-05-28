@@ -106,4 +106,4 @@ matmult m1 m2 =
     where
       m2' = transpose m2
       rowmult row =
-          map (\col -> sum $ zipWith (*) row col) m2'
+          map (sum . zipWith (*) row) m2'
