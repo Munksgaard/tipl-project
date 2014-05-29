@@ -20,18 +20,18 @@ genPyramid levels =
           gen level = [(xpos (fromInteger level) (fromInteger x),
                         ypos $ fromInteger level) | x <- [0 .. level]]
           ypos level = sqrt((2 * level)^2 - level^2) + 1
-          xpos level i = fromInteger levels - level + 2 * i
+          xpos level n = fromInteger levels - level + 2 * n
 
 renderDiscs :: Double -> [Disc] -> C.Render ()
-renderDiscs scale discs = do
+renderDiscs scaler discs = do
   C.setSourceRGB 0 0 0
   C.setLineWidth 1
   --
-  let scaled = map (\(x, y) -> (x * scale, y * scale)) discs
+  let scaled = map (\(x, y) -> (x * scaler, y * scaler)) discs
   mapM_ renderDisc scaled
     where
       renderDisc (x, y) = do
-        C.arc x y scale 0 (2 * pi)
+        C.arc x y scaler 0 (2 * pi)
         C.stroke
 
 discsToSVG :: Integer -> FilePath -> IO ()
@@ -51,9 +51,9 @@ contacts :: [Disc] -> [Contact]
 contacts discs = contacts' discs 0
     where
       contacts' [] _ = []
-      contacts' (x:xs) i = map (\d -> (i, 1 + i + d))
+      contacts' (x:xs) n = map (\d -> (n, 1 + n + d))
                            (findIndices (contactp x) xs)
-                           ++ contacts' xs (1 + i)
+                           ++ contacts' xs (1 + n)
       contactp d1 d2 = dist d1 d2 <= 2 + epsilon
 
 genScene :: Integer -> Scene
