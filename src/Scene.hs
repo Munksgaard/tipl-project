@@ -84,3 +84,16 @@ concMatrix m1 m2 =
 -- Should perhaps be rewritten for performance?
 concMatrices :: (Num a, Element a) => [Matrix a] -> Matrix a
 concMatrices = foldr1 concMatrix
+
+contactMatrixT :: Contact -> [Disc] -> Radius -> Matrix Double
+contactMatrixT (an', cd') ds r =
+    let (an, cd) = (ds !! an', ds !! cd')
+        x = fst cd - fst an
+        y = snd cd - snd an
+        h = sqrt $ x^2 + y^2
+        angle = acos $ x / h
+        c = cos angle
+        s = sin angle
+    in (2><6) [ c, s, 0, -c, -s, 0,
+               -s, c, r,  s, -c, r]
+
