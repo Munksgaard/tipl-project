@@ -2,13 +2,11 @@ module Scene where
 
 import qualified Graphics.Rendering.Cairo as C
 import Data.List
+import Numeric.LinearAlgebra
 
 type Disc = (Double, Double) -- (x, y)
 type Contact = (Int, Int)
 type Scene = ([Disc], [Contact])
-
-type Vector a = [a]
-type Matrix a = [Vector a]
 
 -- Error margin for distances
 epsilon :: Double
@@ -73,37 +71,16 @@ adjConts c1@(an1, cd1) conts =
       adj c2@(an2, cd2) = (an1 == an2 || an1 == cd2 || cd1 == an2 || cd1 == cd2)
                           && c1 /= c2
 
--- (Somewhat pretty) print matrix
-printMatrix :: Show a => Matrix a -> IO ()
-printMatrix = mapM_ print
-
--- Concatenate two matrices
-concMatrix :: (Num a) => Matrix a -> Matrix a -> Matrix a
+-- -- Concatenate two matrices
+concMatrix :: (Num a, Element a) => Matrix a -> Matrix a -> Matrix a
 concMatrix m1 m2 =
-    let len1 = length m1
-        len2 = length m2
-        m1' = map (\row -> row ++ replicate len2 0) m1
-        m2' = map (\row -> replicate len1 0 ++ row) m2
-    in m1' ++ m2'
+    let (col1, row1) = (cols m1, rows m1)
+        (col2, row2) = (cols m2, rows m2)
+        ur = (row1><col2) (repeat 0)
+        dl = (row2><col1) (repeat 0)
+    in
+      fromBlocks [[m1, ur], [dl, m2]]
 
--- More efficient for a list of matrices
-concMatrices :: Num a => [Matrix a] -> Matrix a
-concMatrices ms =
-    let (m, _) = foldr conc ([], 0) $ zip ms lens in m
-    where
-      lens = map (length . head) ms
-      totalLen = sum lens
-      conc (x, len) (xs, i) =
-          let x' = map (\row -> replicate (totalLen - i - len) 0
-                        ++ row
-                        ++ replicate i 0) x
-          in (x' ++ xs, i + len)
-
--- Perform matrix multiplication
-matmult :: Num a => Matrix a -> Matrix a -> Matrix a
-matmult m1 m2 =
-    map rowmult m1
-    where
-      m2' = transpose m2
-      rowmult row =
-          map (sum . zipWith (*) row) m2'
+-- Should perhaps be rewritten for performance?
+concMatrices :: (Num a, Element a) => [Matrix a] -> Matrix a
+concMatrices = foldr1 concMatrix
