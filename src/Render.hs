@@ -16,9 +16,14 @@ renderDiscs scaler discs = do
         C.arc x y scaler 0 (2 * pi)
         C.stroke
 
-discsToSVG :: Integer -> FilePath -> IO ()
+discsToSVG :: [Disc] -> FilePath -> IO ()
 discsToSVG discs filename =
   C.withSVGSurface filename 300 300 renderer
     where
       renderer surface =
-        C.renderWith surface $ renderDiscs 10 $ genPyramid discs
+        C.renderWith surface $ renderDiscs 10 discs
+
+pyramidToSVG :: Integer -> FilePath -> IO ()
+pyramidToSVG levels filename = discsToSVG pyramid filename
+    where
+        pyramid = genPyramid levels
