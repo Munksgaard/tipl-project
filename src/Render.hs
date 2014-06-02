@@ -4,7 +4,7 @@ import Scene
 
 import qualified Graphics.Rendering.Cairo as C
 
-renderDiscs :: Double -> [Disc] -> C.Render ()
+renderDiscs :: Radius -> [Disc] -> C.Render ()
 renderDiscs scaler discs = do
   C.setSourceRGB 0 0 0
   C.setLineWidth 1

@@ -6,6 +6,7 @@ import Numeric.LinearAlgebra
 type Disc = (Double, Double) -- (x, y)
 type Contact = (Int, Int)
 type Scene = ([Disc], [Contact])
+type Radius = Double
 
 -- Error margin for distances
 epsilon :: Double
