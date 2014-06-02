@@ -1,0 +1,42 @@
+\documentclass{article}
+\usepackage{amssymb}
+\usepackage{amsmath}
+
+\renewcommand{\arraystretch}{1.7}
+
+\begin{document}
+\section*{Matrices and their shapes}
+\begin{center}
+\begin{tabular}{| c | c | p{0.5\linewidth} |}
+\hline % Begin header
+Name & Shape & Notes \\
+\hline % End header
+$M$ & $6 \times 6$ & $2 \times 2$ block diagonal matrix with
+                     mass in upper left quadrant and
+                     inertia in lower right quadrant
+                     \\\hline
+$V$ & $6 \times 1$ & $2 \times 1$ block vector with
+                     linear velocity in first coordinate and
+                     angular veloctiy in second coordinate
+                     \\\hline
+$v_\alpha$ & $3 \times 1$ & Relative velocity for a contact $\alpha$ \\\hline
+$r$        & $1 \times 1$ & Impulse of contact ?? \\\hline
+$V_{cd}, V_{an}$ & $6 \times 1$ & $V$'s for the candidate/antagonist pair
+                                  of a contact \\\hline
+$H_{cd}, H_{an}$ & $6 \times 3$ & Contact matrices between candidate and antognist,
+                                  see \eqref{contact matrix} \\\hline
+$H$ & $3 \cdot N_C \times 12 \cdot N_C$ & $N_C \times N_C$ block matrix
+                                          of the $H_{cd}, H_{an}$ pairs column-concatenated \\\hline
+\hline % Bottom
+\end{tabular}
+\end{center}
+
+\begin{equation} \label{contact matrix}
+H_{cd}^T = -1 \cdot H_{an}^T =
+\begin{bmatrix}
+\cos \phi  & \sin \phi & 0 & -\cos \phi & -\sin \phi & 0  \\
+-\sin \phi & \cos \phi & r & \sin \phi  & -\cos \phi & r \\
+0? & 0? & 0? & 0? & 0? & 0?
+\end{bmatrix}
+\end{equation}
+\end{document}
