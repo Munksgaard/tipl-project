@@ -75,9 +75,9 @@ contactMatrix (an', cd') ds r =
         angle = acos $ x / h
         c = cos angle
         s = sin angle
-    in (6><2) [ c, -s,
-                s,  c,
-                0, -r,
-               -c,  s,
-               -s, -c,
-                0, -r]
+    in (6><3) [ c, -s, 0,
+                s,  c, 0,
+                0, -r, 0,
+               -c,  s, 0,
+               -s, -c, 0,
+                0, -r, 0]
