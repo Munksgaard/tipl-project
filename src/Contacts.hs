@@ -35,19 +35,27 @@ contactMatrix (cd, an) =
     let phi = angle cd an
         c = cos phi
         s = sin phi
-    in (6><3) [ c, -s, 0,
-                s,  c, 0,
-                0,  0, 0, -- TODO: Find out what r is
-               -c,  s, 0,
-               -s, -c, 0,
-                0,  0, 0]
+    in (6><2) [ c, -s,
+                s,  c,
+                0,  -(radius cd), -- TODO: Find out what r is
+               -c,  s,
+               -s, -c,
+                0,  radius an]
 
-relVelocity :: Contact -> Matrix Double
-relVelocity (cd, an) =
-    h `multiply` v
+waa :: Contact -> Matrix Double -- 2x2 matrix
+waa (cd, an) =
+    trans h `multiply` m `multiply` h
     where
-      v = linearV cd # angularV cd # linearV an # angularV an
-      h = trans $ contactMatrix (cd, an) # contactMatrix (an, cd)
+        h = contactMatrix (cd, an)
+        m = diagBlock [massM cd, massM an]
+
+wab :: Contact -> Contact -> Matrix Double -- 2x2 matrix
+wab (cd1, an1) (cd2, an2) =
+    trans h_alpha `multiply` m `multiply` h_beta
+    where
+        h_alpha = undefined -- 3x2 matrix
+        m = undefined -- 3x3 matrix
+        h_beta = undefined -- 3x2
 
 -- delassus :: Contact -> [Contact] -> Matrix Double
 -- delassus (cd, an) cs =

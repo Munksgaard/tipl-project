@@ -4,9 +4,7 @@ import Numeric.LinearAlgebra
 import Numeric.LinearAlgebra.Util
 
 data Disc = Disc { mass :: Double
-                 , inertia :: Matrix Double
-                 , linearV :: Matrix Double
-                 , angularV :: Matrix Double
+                 , inertia :: Double
                  , xpos :: Double
                  , ypos :: Double
                  , radius :: Double
@@ -20,9 +18,7 @@ instance Show Disc where
                                        $ break ((== ".") . (:[])) $ show double
 
 stdDisc = Disc { mass = 1
-               , inertia = zeros 3 3
-               , linearV = zeros 3 1
-               , angularV = zeros 3 1
+               , inertia = 1
                , xpos = 0
                , ypos = 0
                , radius = 1
@@ -51,5 +47,4 @@ angle d1 d2 =
 
 massM :: Disc -> Matrix Double
 massM d =
-    diag (fromList [mass d, mass d, mass d]) -- TODO: There was an `r`
-                                             -- somewhere, what is it?
+    diag (fromList [mass d, mass d, inertia d])
