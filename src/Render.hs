@@ -1,15 +1,15 @@
 module Render where
 
-import Scene
+import Disc
 
 import qualified Graphics.Rendering.Cairo as C
 
-renderDiscs :: Radius -> [Disc] -> C.Render ()
+renderDiscs :: Double -> [Disc] -> C.Render ()
 renderDiscs scaler discs = do
   C.setSourceRGB 0 0 0
   C.setLineWidth 1
   --
-  let scaled = map (\(x, y) -> (x * scaler, y * scaler)) discs
+  let scaled = map (\d -> (xpos d * scaler, ypos d * scaler)) discs
   mapM_ renderDisc scaled
     where
       renderDisc (x, y) = do
