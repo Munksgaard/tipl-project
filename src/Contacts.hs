@@ -37,7 +37,7 @@ contactMatrix (cd, an) =
         s = sin phi
     in (6><2) [ c, -s,
                 s,  c,
-                0,  -(radius cd), -- TODO: Find out what r is
+                0,  -(radius cd),
                -c,  s,
                -s, -c,
                 0,  radius an]
