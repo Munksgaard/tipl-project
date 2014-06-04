@@ -32,3 +32,29 @@ sumWab c cs r =
         where
           prods = zipWith mXv wabs (repeat r)
           wabs = map (wab c) cs
+
+jacobi :: [Disc] -> Vector Double -> [Vector Double]
+jacobi ds ext =
+    iter 10 r_init
+        where
+          cs = contacts ds
+          adjs = map (flip adjContacts cs) cs
+          r_init = replicate (length cs) $ fromList [0, 0]
+          --
+          iter :: Int -> [Vector Double] -> [Vector Double]
+          iter 0 rs = rs
+          iter k rs = iter (k-1) r_new
+              where
+                (cd1, an1) = head cs
+                (cd2, an2) = head $ tail cs
+                firstM = diagBlock [massM cd1, massM an1] -- 6x6
+                secondM = diagBlock [massM cd2, massM an2] -- 6x6
+                first = trans (contactMatrix (cd1, an1)) `multiply` firstM `mXv` ext -- 2x1
+                second = trans (contactMatrix (cd2, an2)) `multiply` secondM `mXv` ext -- 2x1
+                rhss = first : second : (drop 2 $ zipWith3 sumWab cs adjs rs)
+                waas = map waa cs
+                solver rhs waa =
+                    if -(rhs @> 0) < 0
+                    then fromList [inv waa `mXv` rhs @> 0, waa @@> (1,1)]
+                    else fromList [0, waa @@> (1,1)]
+                r_new = zipWith solver rhss waas
