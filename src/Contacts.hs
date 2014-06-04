@@ -66,11 +66,3 @@ sumWab :: Contact -> [Contact] -> Matrix Double
 sumWab c cs =
     let adj = map (wab c) $ adjContacts c cs
     in foldr add (zeros 2 2) adj
-
--- delassus :: Contact -> [Contact] -> Matrix Double
--- delassus (cd, an) cs =
---     trans h `multiply` inv m `multiply` h
---     where
---       h = diagBlock $ map (aux contactMatrix (!)) cs
---       m = diagBlock $ map (aux massM (!)) cs
---       aux f1 f2 (t1, t2) = f2 (f1 (t1, t2)) (f1 (t2, t1))
