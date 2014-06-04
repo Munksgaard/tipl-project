@@ -62,6 +62,11 @@ wab (cd1, an1) (cd2, an2) =
       m = diagBlock [massM cd] -- 3x3 matrix
       h_beta = takeRows 3 $ contactMatrix beta -- 3x2
 
+sumWab :: Contact -> [Contact] -> Matrix Double
+sumWab c cs =
+    let adj = map (wab c) $ adjContacts c cs
+    in foldr add (zeros 2 2) adj
+
 -- delassus :: Contact -> [Contact] -> Matrix Double
 -- delassus (cd, an) cs =
 --     trans h `multiply` inv m `multiply` h
