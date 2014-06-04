@@ -1,6 +1,6 @@
-module Render where
+module ContactDynamics.Sequential.Render where
 
-import Disc
+import ContactDynamics.Sequential.Disc
 
 import qualified Graphics.Rendering.Cairo as C
 

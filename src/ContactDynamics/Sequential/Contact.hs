@@ -1,6 +1,6 @@
-module Contacts where
+module ContactDynamics.Sequential.Contact where
 
-import Disc
+import ContactDynamics.Sequential.Disc
 
 import Data.List
 import Numeric.LinearAlgebra
