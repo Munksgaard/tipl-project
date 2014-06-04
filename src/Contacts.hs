@@ -54,12 +54,12 @@ wab (cd1, an1) (cd2, an2) =
     trans h_alpha `multiply` m `multiply` h_beta
     where
       -- Normalize contacts: put the relevant disc as the candidate
-      alpha@(cd, an) = if cd1 == cd2 || cd1 == an2
+      alpha@(cd, _) = if cd1 == cd2 || cd1 == an2
                       then (cd1, an1)
                       else (an1, cd1)
       beta = if cd == cd2 then (cd2, an2) else (an2, cd2)
       h_alpha = takeRows 3 $ contactMatrix alpha -- 3x2 matrix
-      m = diagBlock [massM cd, massM an] -- 3x3 matrix
+      m = diagBlock [massM cd] -- 3x3 matrix
       h_beta = takeRows 3 $ contactMatrix beta -- 3x2
 
 -- delassus :: Contact -> [Contact] -> Matrix Double
