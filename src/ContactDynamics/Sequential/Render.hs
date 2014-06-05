@@ -1,7 +1,10 @@
 module ContactDynamics.Sequential.Render where
 
 import ContactDynamics.Sequential.Disc
+import ContactDynamics.Sequential.Contact
+import ContactDynamics.Sequential.JacobiSolver
 
+import Numeric.LinearAlgebra
 import qualified Graphics.Rendering.Cairo as C
 
 renderDiscs :: Double -> [Disc] -> C.Render ()
