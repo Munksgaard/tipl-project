@@ -32,9 +32,9 @@ renderContacts scaler xs = do
     where
       renderImpulse ((x1, y1), (x2, y2), width) = do
         C.moveTo x1 y1
-        C.setLineWidth $ render * 0.1
+        C.setLineWidth $ width * 0.1
         C.lineTo x2 y2
-  C.setLineWidth 1
+        C.stroke
 
 discsToSVG :: [Disc] -> FilePath -> IO ()
 discsToSVG discs filename =
