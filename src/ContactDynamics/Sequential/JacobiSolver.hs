@@ -40,22 +40,24 @@ jacobi ds ext =
           cs = contacts ds
           adjs = map (`adjContacts` cs) cs
           r_init = replicate (length cs) $ fromList [0, 0]
+          waas = map waa cs
           --
           iter :: Int -> [Vector Double] -> [Vector Double]
           iter 0 rs = rs
           iter k rs = iter (k-1) r_new
               where
-                (cd1, an1) = head cs
-                (cd2, an2) = head $ tail cs
-                firstM = diagBlock [massM cd1, massM an1] -- 6x6
-                secondM = diagBlock [massM cd2, massM an2] -- 6x6
-                first = trans (contactMatrix (cd1, an1)) `multiply` firstM `mXv` ext -- 2x1
-                second = trans (contactMatrix (cd2, an2)) `multiply` secondM `mXv` ext -- 2x1
-                rhss = first : second : (drop 2 $ zipWith3 sumWab cs adjs rs)
-                waas = map waa cs
+                rhss' = zipWith3 sumWab cs adjs rs
+                rhss = (topStuff ext $ cs !! 0) `add` (rhss' !! 0)
+                       : (topStuff ext $ cs !! 1) `add` (rhss' !! 1)
+                       : drop 2 rhss'
                 solver rhs waa =
-                    fromList
-                      (if (-(rhs @> 0)) < 0 then
-                           [inv waa `mXv` rhs @> 0, waa @@> (1, 1)]
-                       else [0, waa @@> (1, 1)])
+                    fromList [if (-(rhs @> 0)) < 0 then inv waa `mXv` rhs @> 0 else 0,
+                              (waa @@> (1,1) * rhs @> 1)]
                 r_new = zipWith solver rhss waas
+
+topStuff :: Vector Double -> Contact -> Vector Double
+topStuff f (cd, an) =
+    trans h `multiply` m `mXv` f
+    where
+      h = contactMatrix (cd, an)
+      m = diagBlock [massM cd, massM an]

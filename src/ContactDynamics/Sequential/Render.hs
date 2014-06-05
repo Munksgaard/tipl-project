@@ -57,4 +57,4 @@ contactsToSVG discs filename = do
         C.renderWith surface $ renderDiscs 10 discs
         C.renderWith surface $ renderContacts 10 $ zip cs rs
       cs = contacts discs
-      rs = jacobi discs $ fromList [1,1,1,1,1,1]
+      rs = jacobi discs $ fromList [0,1,0,0,0,0]
