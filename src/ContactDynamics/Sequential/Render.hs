@@ -41,6 +41,6 @@ discsToSVG discs filename =
         C.renderWith surface $ renderDiscs 10 discs
 
 pyramidToSVG :: Integer -> FilePath -> IO ()
-pyramidToSVG levels filename = discsToSVG pyramid filename
+pyramidToSVG levels = discsToSVG pyramid
     where
         pyramid = genPyramid levels

@@ -38,7 +38,7 @@ jacobi ds ext =
     iter 10 r_init
         where
           cs = contacts ds
-          adjs = map (flip adjContacts cs) cs
+          adjs = map (`adjContacts` cs) cs
           r_init = replicate (length cs) $ fromList [0, 0]
           --
           iter :: Int -> [Vector Double] -> [Vector Double]
@@ -54,7 +54,8 @@ jacobi ds ext =
                 rhss = first : second : (drop 2 $ zipWith3 sumWab cs adjs rs)
                 waas = map waa cs
                 solver rhs waa =
-                    if -(rhs @> 0) < 0
-                    then fromList [inv waa `mXv` rhs @> 0, waa @@> (1,1)]
-                    else fromList [0, waa @@> (1,1)]
+                    fromList
+                      (if (-(rhs @> 0)) < 0 then
+                           [inv waa `mXv` rhs @> 0, waa @@> (1, 1)]
+                       else [0, waa @@> (1, 1)])
                 r_new = zipWith solver rhss waas
