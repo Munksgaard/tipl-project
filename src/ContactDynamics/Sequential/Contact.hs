@@ -22,13 +22,13 @@ contacts (x:xs) = map (\d -> (x, d))
 
 -- Finds indices of bodies adjacent to bodies in a contact
 -- Assumes (i1, i2) == (j1, j2) iff it is the same contact
-discContacts :: Disc -> [Contact] -> [Contact]
-discContacts d =
-    filter (\(d', d'') -> d == d' || d == d'')
+discContacts :: Disc -> Int -> [Contact] -> [Int]
+discContacts d n =
+    map (+ n) . findIndices (\(d', d'') -> d == d' || d == d'')
 
-adjContacts :: Contact -> [Contact] -> [Contact]
-adjContacts c@(d1, d2) cs =
-    delete c $ nub $ discContacts d1 cs ++ discContacts d2 cs
+adjContacts :: Contact -> [Contact] -> Int -> [Int]
+adjContacts c@(d1, d2) cs n =
+    delete n $ nub $ discContacts d1 n cs ++ discContacts d2 n cs
 
 contactMatrix :: Contact -> Matrix Double
 contactMatrix (cd, an) =
@@ -41,3 +41,13 @@ contactMatrix (cd, an) =
                -c,  s,
                -s, -c,
                 0,  radius an]
+
+pick :: (Ord a, Show a) => [a] -> [Int] -> [a]
+pick xs ns =
+    pick' xs ns' 0
+    where
+      ns' = sort ns
+      pick' _ [] _ = []
+      pick' (x:xs) (n:ns) i | n == i = x : pick' xs ns (i + 1)
+                            | otherwise = pick' xs (n:ns) (i+1)
+      pick' xs ns i = error $ show (show xs, show ns, show i)

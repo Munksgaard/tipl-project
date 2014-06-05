@@ -26,19 +26,19 @@ wab (cd1, an1) (cd2, an2) =
       m = diagBlock [massM cd] -- 3x3 matrix
       h_beta = takeRows 3 $ contactMatrix beta -- 3x2
 
-sumWab :: Contact -> [Contact] -> Vector Double -> Vector Double
-sumWab c cs r =
+sumWab :: [Contact] -> [Vector Double] -> Contact -> [Int] -> Vector Double
+sumWab cs rs c adjs =
     foldr add (fromList [0, 0]) prods
         where
-          prods = zipWith mXv wabs (repeat r)
+          prods = zipWith mXv wabs $ pick rs adjs
           wabs = map (wab c) cs
 
 jacobi :: [Disc] -> Vector Double -> [Vector Double]
 jacobi ds ext =
-    iter 10 r_init
+    iter 1 r_init
         where
           cs = contacts ds
-          adjs = map (`adjContacts` cs) cs
+          adjs' = zipWith (`adjContacts` cs) cs (iterate (+ 1) 0)
           r_init = replicate (length cs) $ fromList [0, 0]
           waas = map waa cs
           --
@@ -46,13 +46,13 @@ jacobi ds ext =
           iter 0 rs = rs
           iter k rs = iter (k-1) r_new
               where
-                rhss' = zipWith3 sumWab cs adjs rs
+                rhss' = zipWith (sumWab cs rs) cs adjs'
                 rhss = topStuff ext (head cs) `add` head rhss'
                        : topStuff ext (cs !! 1) `add` (rhss' !! 1)
                        : drop 2 rhss'
                 solver rhs waa =
-                    fromList [if (-(rhs @> 0)) < 0 then inv waa `mXv` rhs @> 0 else 0,
-                              waa @@> (1,1) * rhs @> 1]
+                    fromList [if (rhs @> 0) > 0 then inv waa `mXv` rhs @> 0 else 0,
+                              rhs @> 1 / waa @@> (1,1)]
                 r_new = zipWith solver rhss waas
 
 topStuff :: Vector Double -> Contact -> Vector Double
