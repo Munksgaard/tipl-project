@@ -12,11 +12,14 @@ renderDiscs scaler discs = do
   C.setSourceRGB 0 0 0
   C.setLineWidth 1
   --
-  let scaled = map (\d -> (xpos d * scaler, ypos d * scaler)) discs
-  mapM_ renderDisc scaled
+  let scaled = map (\d -> (xpos d * scaler, ypos d * scaler, discId d)) discs
+  let maxy = maximum $ map (\(_, x, _) -> x) scaled
+  mapM_ (renderDisc maxy) scaled
     where
-      renderDisc (x, y) = do
-        C.arc x y scaler 0 (2 * pi)
+      renderDisc maxy (x, y, i) = do
+        C.arc x (maxy - y + 10) scaler 0 (2 * pi)
+        C.moveTo (x-3) $ maxy - y + 13
+        C.textPath $ show i
         C.stroke
 
 renderContacts :: Double -> [(Contact, Vector Double)] -> C.Render ()
@@ -57,4 +60,4 @@ contactsToSVG discs filename = do
         C.renderWith surface $ renderDiscs 10 discs
         C.renderWith surface $ renderContacts 10 $ zip cs rs
       cs = contacts discs
-      rs = jacobi discs $ fromList [0,1,0,0,0,0]
+      rs = jacobi 10 discs $ fromList [0,1,0,0,0,0]

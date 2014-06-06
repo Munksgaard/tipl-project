@@ -8,13 +8,13 @@ import ContactDynamics.Sequential.JacobiSolver
 import Numeric.LinearAlgebra
 import Numeric.LinearAlgebra.Util
 
-ds = genPyramid 3
+ds = genPyramid 2
 cs = contacts ds
 c1 = head cs
 c2 = head $ tail cs
-ext = fromList [0,1,0,0,0,0] :: Vector Double
+ext = fromList [0,-1,0,0,0,0] :: Vector Double
 
-adjs = map (`adjContacts` cs) cs
+adjs = zipWith (`adjContacts` cs) cs $ iterate (1+) 0
 
 r_init = replicate (length cs) $ fromList [0, 0] :: [Vector Double]
 waas = map waa cs
