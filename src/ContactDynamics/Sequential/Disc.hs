@@ -39,12 +39,16 @@ genPyramid levels =
 
 angle :: Disc -> Disc -> Double
 angle d1 d2 =
-    acos $ x / h
+    if y < 0 then
+        2 * pi - angle
+    else
+        angle
     where
+      angle = acos $ x / h
       x = xpos d2 - xpos d1
       y = ypos d2 - ypos d1
       h = sqrt $ x^2 + y^2
 
-massM :: Disc -> Matrix Double -- 2x2
+massM :: Disc -> Matrix Double -- 3x3 diagonal matrix
 massM d =
     diag (fromList [mass d, mass d, inertia d])

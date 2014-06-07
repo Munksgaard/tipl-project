@@ -35,12 +35,8 @@ contactMatrix (cd, an) =
     let phi = angle cd an
         c = cos phi
         s = sin phi
-    in (6><2) [ c, -s,
-                s,  c,
-                0,  -(radius cd),
-               -c,  s,
-               -s, -c,
-                0,  -(radius an)]
+    in trans $ (2><6) [ c, s, 0, -c, -s, 0
+                      , -s, c, - (radius cd), s, -c, -(radius an)]
 
 pick :: Show a => [a] -> [Int] -> [a]
 pick xs ns =
