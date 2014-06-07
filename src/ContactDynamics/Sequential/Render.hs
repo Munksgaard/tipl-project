@@ -31,12 +31,13 @@ renderContacts scaler xs = do
                         ((xpos cd * scaler, ypos cd * scaler),
                          (xpos an * scaler, ypos an * scaler),
                          r @>0)) xs
+  let maxy = maximum $ map (\(_, x, _) -> x) scaled
   mapM_ renderImpulse scaled
     where
       renderImpulse ((x1, y1), (x2, y2), width) = do
-        C.moveTo x1 y1
-        C.setLineWidth $ width * 0.1
-        C.lineTo x2 y2
+        C.moveTo x1 $ scaler - y1 + scaler
+        C.setLineWidth $ width * scaler
+        C.lineTo x2 $ scaler - y2 + scaler
         C.stroke
 
 discsToSVG :: [Disc] -> FilePath -> IO ()
