@@ -59,8 +59,8 @@ contactsToSVG levels filename = do
     where
       scaler = 30
       renderer surface = do
-        C.renderWith surface $ renderDiscs scaler discs
-        C.renderWith surface $ renderContacts scaler $ zip cs rs
+        C.renderWith surface $ renderDiscs (fromInteger scaler) discs
+        C.renderWith surface $ renderContacts (fromInteger scaler) $ zip cs rs
       cs = contacts discs
       rs = jacobi 100 discs $ fromList [0,-1,0,0,0,0]
       discs = genPyramid levels
