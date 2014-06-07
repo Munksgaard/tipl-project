@@ -17,7 +17,7 @@ renderDiscs scaler discs = do
   mapM_ (renderDisc maxy) scaled
     where
       renderDisc maxy (x, y, i) = do
-        C.arc x (maxy - y + 10) scaler 0 (2 * pi)
+        C.arc x (maxy - y + scaler) scaler 0 (2 * pi)
         C.moveTo (x-3) $ maxy - y + 13
         C.textPath $ show i
         C.stroke
