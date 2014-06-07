@@ -7,6 +7,18 @@ type VectorList e = Array DIM2 e
 type Wxx  = Array DIM2 Double
 type Wxxs = Array DIM3 Double
 
+i0 = constant 0 :: Exp Int
+i1 = constant 1 :: Exp Int
+i2 = constant 2 :: Exp Int
+i3 = constant 3 :: Exp Int
+i4 = constant 4 :: Exp Int
+
+d0 = constant 0.0 :: Exp Double
+d1 = constant 1.0 :: Exp Double
+d2 = constant 2.0 :: Exp Double
+d3 = constant 3.0 :: Exp Double
+d4 = constant 4.0 :: Exp Double
+
 -- Int               = Number of iterations
 -- [Disc]            = The discs in the scene
 -- Vector Double     = The external force, a 2x1 vector
@@ -24,11 +36,16 @@ calcRHS :: Acc (Vector Double) -> Acc (Wxxs) -> Acc (VectorList Double) -> Acc (
 calcRHS extF wabs impulses = extF `vadd` (wabs `wXr` impulses)
 
 ---- Solve right hand side
--- Acc (Wxx)           = The inverse of the Waa for this specific RHS, a 2x2 vector
+-- Acc (Vector Double) = The inverse of the Waa for this specific RHS,
+--                       since Waa is a diagonal this is a 2x1 vector
 -- Acc (Vector Double) = The right hand side, a 2x1 vector
 -- Acc (Vector Double) = The resultant impulse for the contact for this specific RHS, a 2x1
-solveRHS :: Acc (Wxx) -> Acc (Vector Double) -> Acc (Vector Double)
-solveRHS inWaa rhs = undefined
+solveRHS :: Acc (Vector Double) -> Acc (Vector Double) -> Acc (Vector Double)
+solveRHS inWaa rhs = cond ?| (r', z0)
+  where
+    cond = rhs A.!! i1 >* d0
+    r' = A.zipWith (*) inWaa rhs
+    z0 = lift $ fromList (Z :. (2 :: Int)) [0,0]
 
 ---- Calculate matrix-vector product sums of Wab and impulses rs
 wXr :: Acc (Wxxs) -> Acc (VectorList Double) -> Acc (Vector Double)
@@ -42,10 +59,7 @@ wXr wabs' rs' = fold (+) d0 $ reshape sh2x2 rowSum
     rsSh     = lift $ Z :. rows :.i4
     rows     = indexHead $ shape $ transpose rs'
     sh2x2    = lift $ Z :.i2 :.i2
-    d0       = constant 0 :: Exp Double
-    i2       = constant 2 :: Exp Int
-    i4       = constant 4 :: Exp Int
-
+   
 ---- Calculate vector addition
 vadd :: (Elt e, IsNum e) => Acc (Vector e) -> Acc (Vector e) -> Acc (Vector e)
 vadd a b = A.zipWith (+) a b
