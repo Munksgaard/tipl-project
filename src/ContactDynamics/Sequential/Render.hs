@@ -51,13 +51,14 @@ pyramidToSVG levels = discsToSVG pyramid
     where
         pyramid = genPyramid levels
 
-contactsToSVG :: [Disc] -> FilePath -> IO ()
-contactsToSVG discs filename = do
+contactsToSVG :: Integer -> FilePath -> IO ()
+contactsToSVG levels filename = do
   C.withSVGSurface filename 300 300 renderer
   print $ show rs
     where
       renderer surface = do
-        C.renderWith surface $ renderDiscs 10 discs
-        C.renderWith surface $ renderContacts 10 $ zip cs rs
+        C.renderWith surface $ renderDiscs 100 discs
+        C.renderWith surface $ renderContacts 100 $ zip cs rs
       cs = contacts discs
       rs = jacobi 10 discs $ fromList [0,1,0,0,0,0]
+      discs = genPyramid levels
