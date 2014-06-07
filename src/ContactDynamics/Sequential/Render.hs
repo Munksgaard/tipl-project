@@ -54,7 +54,7 @@ pyramidToSVG levels = discsToSVG pyramid
 
 contactsToSVG :: Integer -> FilePath -> IO ()
 contactsToSVG levels filename = do
-  C.withSVGSurface filename (levels * scaler * 2) (levels * scaler * 2) renderer
+  C.withSVGSurface filename (fromInteger $ levels * scaler * 2) (fromInteger $ levels * scaler * 2) renderer
   print $ show rs
     where
       scaler = 30
