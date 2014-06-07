@@ -60,5 +60,5 @@ contactsToSVG levels filename = do
         C.renderWith surface $ renderDiscs 100 discs
         C.renderWith surface $ renderContacts 100 $ zip cs rs
       cs = contacts discs
-      rs = jacobi 10 discs $ fromList [0,1,0,0,0,0]
+      rs = jacobi 10 discs $ fromList [0,-1,0,0,0,0]
       discs = genPyramid levels
