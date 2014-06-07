@@ -39,9 +39,7 @@ jacobi n ds ext =
       cs = contacts ds
       adjs = zipWith (`adjContacts` cs) cs (iterate (+ 1) 0)
       -- r_init = replicate (length cs) $ fromList [0, 0]
-      r_init = solver (topStuff ext (head cs)) (waa (head cs))
-               : solver (topStuff ext (cs !! 1)) (waa $ cs !! 1)
-               : (replicate (length cs - 2) $ fromList [0, 0])
+      r_init = replicate (length cs) $ fromList [0, 0]
       waas = map waa cs
           --
 
@@ -51,7 +49,9 @@ iter 0 rs _ _ _ _ = rs
 iter k rs cs ext adjs waas = iter (k-1) r_new cs ext adjs waas
     where
       rhss' = zipWith (sumWab cs rs) cs adjs
-      rhss = rhss'
+      rhss = topStuff ext (head cs)
+             : topStuff ext (cs !! 1)
+             : rhss'
       r_new = zipWith solver rhss waas
 
 solver :: (Ord a, Field a) => Vector a -> Matrix a -> Vector a
