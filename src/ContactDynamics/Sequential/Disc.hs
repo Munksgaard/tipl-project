@@ -49,6 +49,9 @@ angle d1 d2 =
       y = ypos d2 - ypos d1
       h = sqrt $ x^2 + y^2
 
+pos :: Disc -> (Double, Double)
+pos d = (xpos d, ypos d)
+
 massM :: Disc -> Matrix Double -- 3x3 diagonal matrix
 massM d =
     diag (fromList [mass d, mass d, inertia d])

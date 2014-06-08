@@ -8,7 +8,7 @@ import ContactDynamics.Sequential.JacobiSolver
 import Numeric.LinearAlgebra
 import Numeric.LinearAlgebra.Util
 
-ds = genPyramid 2
+ds = genPyramid 3
 cs = contacts ds
 c1 = head cs
 c2 = head $ tail cs
@@ -34,3 +34,9 @@ waas = map waa cs
 -- solver rhs waa =
 --     fromList [if ((rhs @> 0)) > 0 then inv waa `mXv` rhs @> 0 else 0,
 --               rhs @> 1 / waa @@> (1,1)]
+
+ds2 :: [Disc]
+ds2 = [stdDisc { ypos = 2 }, stdDisc { discId = 1}]
+
+cs2 :: [Contact]
+cs2 = contacts ds2

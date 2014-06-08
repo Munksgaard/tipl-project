@@ -31,13 +31,13 @@ renderContacts scaler xs = do
                         ((xpos cd * scaler, ypos cd * scaler),
                          (xpos an * scaler, ypos an * scaler),
                          r @>0)) xs
-  let maxy = maximum $ map (\(_, x, _) -> x) scaled
-  mapM_ renderImpulse scaled
+  let maxy = maximum $ map (\((_, y1), (_, y2), _) -> max y1 y2) scaled
+  mapM_ (renderImpulse maxy) scaled
     where
-      renderImpulse ((x1, y1), (x2, y2), width) = do
-        C.moveTo x1 $ scaler - y1 + scaler
+      renderImpulse maxy ((x1, y1), (x2, y2), width) = do
+        C.moveTo x1 $ maxy - y1 + scaler
         C.setLineWidth $ width * scaler
-        C.lineTo x2 $ scaler - y2 + scaler
+        C.lineTo x2 $ maxy - y2 + scaler
         C.stroke
 
 discsToSVG :: [Disc] -> FilePath -> IO ()
@@ -52,9 +52,11 @@ pyramidToSVG levels = discsToSVG pyramid
     where
         pyramid = genPyramid levels
 
-contactsToSVG :: Integer -> FilePath -> IO ()
-contactsToSVG levels filename = do
-  C.withSVGSurface filename (fromInteger $ levels * scaler * 2) (fromInteger $ levels * scaler * 2) renderer
+contactsToSVG :: Integer -> FilePath -> Int -> IO ()
+contactsToSVG levels filename iters = do
+  C.withSVGSurface filename (fromInteger $ levels * scaler * 2)
+       (fromInteger $ levels * scaler * 2)
+       renderer
   print $ show rs
     where
       scaler = 30
@@ -62,5 +64,5 @@ contactsToSVG levels filename = do
         C.renderWith surface $ renderDiscs (fromInteger scaler) discs
         C.renderWith surface $ renderContacts (fromInteger scaler) $ zip cs rs
       cs = contacts discs
-      rs = jacobi 100 discs $ fromList [0,-1,0,0,0,0]
+      rs = jacobi iters discs $ fromList [0,-1,0,0,0,0]
       discs = genPyramid levels
