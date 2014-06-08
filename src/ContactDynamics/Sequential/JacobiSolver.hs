@@ -76,7 +76,9 @@ iter k rs cs ext adjs waas = iter (k-1) r_new cs ext adjs waas
       rhss = topStuff ext (head cs) + head rhss'
              : topStuff ext (cs !! 1) + rhss' !! 1
              : drop 2 rhss'
-      r_new = zipWith solver rhss waas
+      r_new' = zipWith solver rhss waas
+      r_new = zipWith3 (\new old relax -> scale relax new + scale (1-relax) old) r_new' rs
+              $ map ((1/) . fromIntegral . length) adjs
 
 solver :: (Ord a, Field a) => Vector a -> Matrix a -> Vector a
 solver rhs waa =

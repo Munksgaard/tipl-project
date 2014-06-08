@@ -28,16 +28,18 @@ dist d1 d2 =
     sqrt ((xpos d2 - xpos d1)^2 + (ypos d2 - ypos d1)^2)
 
 genPyramid :: Integer -> [Disc]
-genPyramid levels =
-     take (fromIntegral levels) ds ++ map (\d -> d { mass = 1 / 0, inertia = 1/0 }) (drop (fromIntegral levels) ds)
+genPyramid levels' =
+     take above ds ++ map (\d -> d { mass = 1 / 0, inertia = 1/0 }) (drop above ds)
        where
           ds = zipWith (\i d -> d { discId = i }) (iterate (1+) 0) $
-            concat [gen level | level <- [0 .. (levels - 1)]]
-   
+            concat [gen level | level <- [0 .. (levels' - 1)]]
+
           gen level = [stdDisc { xpos = x (fromInteger level) (fromInteger x'),
                                  ypos = y $ fromInteger level } | x' <- [0 .. level]]
-          y level = fromInteger levels - sqrt((2 * level)^2 - level^2) + 1
-          x level n = fromInteger levels - level + 2 * n
+          y level = levels - sqrt((2 * level)^2 - level^2) + 1
+          x level n = levels - level + 2 * n
+          above = round $ (levels - 1) * levels / 2
+          levels = fromInteger levels'
 
 angle :: Disc -> Disc -> Double
 angle d1 d2 =
