@@ -66,3 +66,14 @@ contactsToSVG levels filename iters = do
       cs = contacts discs
       rs = jacobi iters discs $ fromList [0,-1,0,0,0,0]
       discs = genPyramid levels
+
+gaussSVG :: Integer -> FilePath -> [Disc] -> [Contact] -> [Vector Double] -> IO ()
+gaussSVG levels filename ds cs rs = do
+  C.withSVGSurface filename (fromInteger $ levels * scaler * 2)
+       (fromInteger $ levels * scaler * 2)
+       renderer
+    where
+      scaler = 30
+      renderer surface = do
+        C.renderWith surface $ renderDiscs (fromInteger scaler) ds
+        C.renderWith surface $ renderContacts (fromInteger scaler) $ zip cs rs

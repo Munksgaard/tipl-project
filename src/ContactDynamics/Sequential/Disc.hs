@@ -29,9 +29,11 @@ dist d1 d2 =
 
 genPyramid :: Integer -> [Disc]
 genPyramid levels =
-    zipWith (\i d -> d { discId = i }) (iterate (1+) 0) $
+     take (fromIntegral levels) ds ++ map (\d -> d { mass = 1 / 0, inertia = 1/0 }) (drop (fromIntegral levels) ds)
+       where
+          ds = zipWith (\i d -> d { discId = i }) (iterate (1+) 0) $
             concat [gen level | level <- [0 .. (levels - 1)]]
-        where
+   
           gen level = [stdDisc { xpos = x (fromInteger level) (fromInteger x'),
                                  ypos = y $ fromInteger level } | x' <- [0 .. level]]
           y level = fromInteger levels - sqrt((2 * level)^2 - level^2) + 1

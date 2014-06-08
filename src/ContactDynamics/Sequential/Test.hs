@@ -40,3 +40,6 @@ ds2 = [stdDisc { ypos = 2 }, stdDisc { discId = 1}]
 
 cs2 :: [Contact]
 cs2 = contacts ds2
+
+drawGauss n = mapM_ (\(r, i) -> gaussSVG 3 (show i ++ ".svg") ds cs r) $ zip (take n $ iterate (gauss ds ext) r_init) (iterate (1+) 0)
+

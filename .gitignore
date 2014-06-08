@@ -2,7 +2,7 @@ dist
 cabal-dev
 *.pdf
 *.swp
-*.svq
+*.svg
 *.o
 *.hi
 *.chi
