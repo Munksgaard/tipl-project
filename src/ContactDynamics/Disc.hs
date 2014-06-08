@@ -1,4 +1,4 @@
-module ContactDynamics.Sequential.Disc where
+module ContactDynamics.Disc where
 
 import Numeric.LinearAlgebra
 import Numeric.LinearAlgebra.Util
