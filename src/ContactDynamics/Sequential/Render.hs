@@ -53,26 +53,25 @@ pyramidToSVG levels = discsToSVG pyramid
         pyramid = genPyramid levels
 
 contactsToSVG :: Integer -> FilePath -> Int -> IO ()
-contactsToSVG levels filename iters = do
+contactsToSVG levels filename iters =
   C.withSVGSurface filename (fromInteger $ levels * scaler * 2)
-       (fromInteger $ levels * scaler * 2)
-       renderer
-  print $ show rs
-    where
-      scaler = 30
-      renderer surface = do
-        C.renderWith surface $ renderDiscs (fromInteger scaler) discs
-        C.renderWith surface $ renderContacts (fromInteger scaler) $ zip cs rs
-      cs = contacts discs
-      rs = jacobi iters discs $ fromList [0,-1,0,0,0,0]
-      discs = genPyramid levels
+      (fromInteger $ levels * scaler * 2)
+      renderer
+  where
+    scaler = 30
+    renderer surface = do
+      C.renderWith surface $ renderDiscs (fromInteger scaler) discs
+      C.renderWith surface $ renderContacts (fromInteger scaler) $ zip cs rs
+    cs = contacts discs
+    rs = jacobi iters discs $ fromList [0,-1,0,0,0,0]
+    discs = genPyramid levels
 
 gaussSVG :: Integer -> FilePath -> [Disc] -> [Contact] -> [Vector Double] -> IO ()
-gaussSVG levels filename ds cs rs = do
+gaussSVG levels filename ds cs rs =
   C.withSVGSurface filename (fromInteger $ levels * scaler * 2)
-       (fromInteger $ levels * scaler * 2)
-       renderer
-    where
+      (fromInteger $ levels * scaler * 2)
+      renderer
+  where
       scaler = 30
       renderer surface = do
         C.renderWith surface $ renderDiscs (fromInteger scaler) ds
