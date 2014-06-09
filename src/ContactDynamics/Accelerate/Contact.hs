@@ -40,16 +40,29 @@ distanceMatrix :: Exp Int -> Acc (Array DIM2 Double) -> Acc (Array DIM2 Double)
 distanceMatrix n p = A.fold dot d0 diff'
   where
     d0     = constant 0.0 :: Exp Double
-    dot    = (\x y -> x*x + y*y)
+    dot    = \x y -> x*x + y*y
     diff'  = A.zipWith (-) pos1' pos2'
     pos1'  = A.replicate repSh1 p
     pos2'  = A.replicate repSh2 $ A.transpose p
     repSh1 = lift $ Z :.n :.All :.All
     repSh2 = lift $ Z :.n :.All :.All
 
-collisionMatrix :: Exp Int -> AccDiscs -> Acc (Array DIM2 Bool)
-collisionMatrix n ads = A.zipWith collisionCheck r d
+collisionMatrix :: Exp Int -> AccDiscs -> Acc (Array DIM2 Int)
+collisionMatrix n ads = A.zipWith (*) idxMask $ A.zipWith collisionCheck r d
   where
+    idxMask        = A.zipWith (*) killMask $ A.replicate repSh idxVector
+    killMask       = generate killSh killExp
+    killSh         = lift $ Z :.n :.n
+    killExp        =
+      \ix ->
+      let
+        (Z :.i :.j) = unlift ix
+      in
+       boolToInt $ i <=* j
+    repSh          = lift $ Z :.n :.All
+    idxVector      = A.enumFromN idxSh i1
+    i1             = constant 1 :: Exp Int
+    idxSh          = lift $ Z :.n
     r              = radiusMatrix n $ radii ads
     d              = distanceMatrix n $ pos ads
-    collisionCheck = (\x y -> abs (x - y) <* epsilon)
+    collisionCheck = (\x y -> boolToInt $ abs (x - y) <* epsilon)

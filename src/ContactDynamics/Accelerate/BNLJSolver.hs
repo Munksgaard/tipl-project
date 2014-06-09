@@ -33,7 +33,7 @@ bnljSolver maxIter ds extF = Backend.run (iter' step rs_init)
     step           = solveRHS' . calcRHS'
     solveRHS'      = solveRHS invs
     calcRHS'       = calcRHS n extF' wss
-    extF'          = use extF
+    extF'          = A.map (\x -> x) $ use extF
     rs_init        = fill rsSh d0
     rsSh           = lift (Z :.n :.i2)
     (n, invs, wss) = liftData ds
@@ -49,9 +49,9 @@ iter n solver rs = iter (n-1) solver (solver rs)
 -- Acc (VectorList Double) = The previously calculated impulses for each contact, a Nx2 vector-matrix
 -- Acc (VectorList Double) = The right hand sides for all the contacts, a Nx2 vector-matrix
 calcRHS :: Exp Int -> Acc (VectorList Double) -> Acc (Wxxss) -> Acc (VectorList Double) -> Acc (VectorList Double)
-calcRHS n extF wabss rs = extF `vsadd` (wabss `wXr'` rs)
+calcRHS n extF wabss rs = extF `vssub` (wabss `wXr'` rs)
   where
-    wXr' = wXr n
+    wXr'  = wXr n
 
 ---- Solve right hand side
 -- Acc (VectorList Double) = The inverse of the Waa for each contact,
@@ -87,5 +87,5 @@ wXr n wabss' rs' = columnSums
     nx2x2      = lift $ Z :.n      :.i2 :.i2
 
 ---- Calculate vector-matrix addition
-vsadd :: (Elt e, IsNum e) => Acc (VectorList e) -> Acc (VectorList e) -> Acc (VectorList e)
-vsadd a b = A.zipWith (+) a b
+vssub :: (Elt e, IsNum e) => Acc (VectorList e) -> Acc (VectorList e) -> Acc (VectorList e)
+vssub a b = A.zipWith (-) a b
