@@ -1,6 +1,7 @@
 module BNLJSolver where
 
 import ContactDynamics.Disc
+import ContactDynamics.Accelerate.Contact
 import Data.Array.Accelerate as A
 import Data.Array.Accelerate.Interpreter as Backend
 
@@ -26,21 +27,20 @@ d4 = constant 4.0 :: Exp Double
 -- VectorList Double = The external force, a Nx2 vector-matrix
 -- VectorList Double = The resultant impulses on [Disc], a Nx2 vector-matrix
 bnljSolver :: Int -> [Disc] -> VectorList Double -> VectorList Double
-bnljSolver maxIter ds extF = Backend.run (iter' solve rs)
+bnljSolver maxIter ds extF = Backend.run (iter' step rs_init)    
   where
-    iter'       = iter maxIter
-    solve       = solveRHS' . calcRHS'
-    solveRHS'   = solveRHS inWass
-    calcRHS'    = calcRHS numContacts extF' wabss
-    extF'       = use extF
-    inWass      = undefined
-    wabss       = undefined
-    numContacts = undefined
-    rs          = undefined
+    iter'          = iter maxIter
+    step           = solveRHS' . calcRHS'
+    solveRHS'      = solveRHS invs
+    calcRHS'       = calcRHS n extF' wss
+    extF'          = use extF
+    rs_init        = fill rsSh d0
+    rsSh           = lift (Z :.n :.i2)
+    (n, invs, wss) = liftData ds
 
 iter :: Int -> (Acc (VectorList Double) -> Acc (VectorList Double)) -> Acc (VectorList Double) -> Acc (VectorList Double)
 iter 0 _ rs = rs
-iter n solve rs = iter (n-1) solve (solve rs)
+iter n solver rs = iter (n-1) solver (solver rs)
 
 ---- Calculate right hand side
 -- Exp Int                 = N: A constant that tells us the total number of contacts
@@ -59,13 +59,12 @@ calcRHS n extF wabss rs = extF `vsadd` (wabss `wXr'` rs)
 -- Acc (VectorList Double) = The right hand side for each contact, a Nx2 vector-matrix
 -- Acc (VectorList Double) = The resultant impulse for each contact, a Nx2 vector-matrix
 solveRHS :: Acc (VectorList Double) -> Acc (VectorList Double) -> Acc (VectorList Double)
-solveRHS inWaas rhss = undefined
-
--- solveRHS inWaa rhs = cond ?| (r', z0)
---   where
---     cond = rhs A.!! i1 >* d0
---     r' = A.zipWith (*) inWaa rhs
---     z0 = lift $ fromList (Z :. (2 :: Int)) [0,0]
+solveRHS inWaas rhss = A.zipWith (*) condM $ A.zipWith (*) inWaas rhss
+  where
+    condM   = A.replicate repSh $ A.map (A.fromIntegral . boolToInt . (>*0)) rhs1s
+    rhs1s   = slice rhss sliceSh
+    sliceSh = lift $ Z :.All :.i1
+    repSh   = lift $ Z :.All :.i2
 
 ---- Calculate matrix-vector product sums of wabs and impulses for each contact AT THE SAME TIME
 -- arg  1: N: A constant that tells us the total number of contacts
