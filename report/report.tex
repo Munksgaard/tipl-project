@@ -92,12 +92,11 @@ the more contacts there are~\footnote{In fact, for a height $n$, we have
   between the new layer and the old, in addition to the $n-1$ contacts in the
   new layer. We can then prove the above by induction.}, and for each contact,
 we have to take up to 10 other contacts into account when calculating its
-impulse, as can easily be seen in figure \ref{fig:upto10}.
+impulse, as can easily be seen in figure \ref{fig:upto10}. Furthermore, as
+contact impulses depend on adjacent contact impulses, we cannot easily
+calculate an analytical solution. Instead, we have to compute the solution
+numerically, by using intermediate estimates to iteratively produces better and
+better estimates for the contact impulses until we reach convergence.
 
-Furthermore, as contact impulses depend on adjacent contact impulses, we cannot
-easily calculate an analytical solution. Instead, we have to compute the
-solution numerically, by using intermediate estimates to iteratively produces
-better and better estimates for the contact impulses until we reach
-convergence.
 
 \end{document}
