@@ -98,5 +98,10 @@ calculate an analytical solution. Instead, we have to compute the solution
 numerically, by using intermediate estimates to iteratively produces better and
 better estimates for the contact impulses until we reach convergence.
 
+Because of the massive size of these problems, and the iterative nature of the
+solver, computing the contact impulses in large pyramids is expensive on
+traditional sequential architectures. We wish to explore the possibility and
+efficiency of computing these contact dynamics by using the data parallel
+architecture of GPUs.
 
 \end{document}
