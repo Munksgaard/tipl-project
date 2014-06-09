@@ -104,4 +104,14 @@ traditional sequential architectures. We wish to explore the possibility and
 efficiency of computing these contact dynamics by using the data parallel
 architecture of GPUs.
 
+\section{Goals}
+
+We wish to calculate the contact impulses between discs in a 2-dimensional
+system using Accelerate, a Haskell embedded language for expressing parallel
+computations suitable for execution on a GPU. Since transferring data to and
+from the GPU can incur significant overhead, and GPU programming in general
+imposes constraints on how computations can be done, we also wish to run
+performance tests, comparing the GPGPU implementation with implementations of
+the solver running on traditional sequential hardware, in order to discuss the
+efficiency of the implementation.
 \end{document}
