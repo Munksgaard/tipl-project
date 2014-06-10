@@ -41,6 +41,19 @@ jacobi n ds ext =
       r_init = replicate (length cs) $ fromList [0, 0]
       waas = map waa cs
 
+--iter :: Int -> [Vector Double] -> [Vector Double]
+iter :: (Eq a, Num a) => a -> [Vector Double] -> [Contact] -> Vector Double -> [[Int]] -> [Matrix Double] -> [Vector Double]
+iter 0 rs _ _ _ _ = rs
+iter k rs cs ext adjs waas = iter (k-1) r_new cs ext adjs waas
+    where
+      rhss' = zipWith (sumWab cs rs) cs adjs
+      rhss = topStuff ext (head cs) + head rhss'
+             : topStuff ext (cs !! 1) + rhss' !! 1
+             : drop 2 rhss'
+      r_new' = zipWith solver rhss waas
+      r_new = zipWith3 (\new old relax -> scale relax new + scale (1-relax) old) r_new' rs
+              $ map ((1/) . fromIntegral . length) adjs
+
 gauss :: [Disc] -> Vector Double -> [Vector Double] -> [Vector Double]
 gauss ds ext rs =
     iter' (length cs - 1) rs cs ext adjs waas
@@ -65,20 +78,6 @@ iter' i rs cs ext adjs waas  =
 set :: Int -> a -> [a] -> [a]
 set i x xs =
   take (i-1) xs ++ x : drop i xs
-
-
---iter :: Int -> [Vector Double] -> [Vector Double]
-iter :: (Eq a, Num a) => a -> [Vector Double] -> [Contact] -> Vector Double -> [[Int]] -> [Matrix Double] -> [Vector Double]
-iter 0 rs _ _ _ _ = rs
-iter k rs cs ext adjs waas = iter (k-1) r_new cs ext adjs waas
-    where
-      rhss' = zipWith (sumWab cs rs) cs adjs
-      rhss = topStuff ext (head cs) + head rhss'
-             : topStuff ext (cs !! 1) + rhss' !! 1
-             : drop 2 rhss'
-      r_new' = zipWith solver rhss waas
-      r_new = zipWith3 (\new old relax -> scale relax new + scale (1-relax) old) r_new' rs
-              $ map ((1/) . fromIntegral . length) adjs
 
 solver :: (Ord a, Field a) => Vector a -> Matrix a -> Vector a
 solver rhs waa =
