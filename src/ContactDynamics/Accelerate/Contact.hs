@@ -13,8 +13,8 @@ epsilon = 0.0001
 
 ---- Calculate the contact space matrix inverses and the adjacent contacts
 -- [Disc] = 
-liftData :: [Disc] -> (Exp Int, Acc (Array DIM1 Double), Acc (Array DIM2 Double), Acc(Array DIM4 Double))
-liftData ds = (lift n, use w, use inWaas', use wabss')
+liftData :: [Disc] -> (Int, Exp Int, Acc (Array DIM1 Double), Acc (Array DIM2 Double), Acc(Array DIM4 Double))
+liftData ds = (n, lift n, use w, use inWaas', use wabss')
   where
     cs          = contacts ds
     n           = length cs

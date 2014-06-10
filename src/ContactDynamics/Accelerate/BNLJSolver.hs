@@ -2,6 +2,8 @@ module BNLJSolver where
 
 import ContactDynamics.Disc
 import ContactDynamics.Accelerate.Contact
+import qualified Numeric.LinearAlgebra as M
+import qualified Data.List as L
 import Data.Array.Accelerate as A
 import Data.Array.Accelerate.Interpreter as Backend
 
@@ -24,21 +26,26 @@ d4 = constant 4.0 :: Exp Double
 
 -- Int               = Number of iterations
 -- [Disc]            = The discs in the scene
--- VectorList Double = The external force, a Nx2 vector-matrix
+-- [M.Vector Double] = The external force, a list of vectors
 -- VectorList Double = The resultant impulses on [Disc], a Nx2 vector-matrix
-bnljSolver :: Int -> [Disc] -> VectorList Double -> VectorList Double
+bnljSolver :: Int -> [Disc] -> [M.Vector Double] -> VectorList Double
 bnljSolver maxIter ds extF = Backend.run (iter' step rs_init)
   where
-    iter'             = iter maxIter w'
-    step              = solveRHS' . calcRHS'
-    solveRHS'         = solveRHS invs
-    calcRHS'          = calcRHS n extF' wss
-    extF'             = A.map (\x -> -x) $ use extF
-    rs_init           = fill rsSh d0
-    rsSh              = lift (Z :.n :.i2)
-    w'                = A.replicate repSh w
-    repSh             = lift $ Z :.All :.i2
-    (n, w, invs, wss) = liftData ds
+    iter'                 = iter maxIter w'
+    step                  = solveRHS' . calcRHS'
+    solveRHS'             = solveRHS invs
+    calcRHS'              = calcRHS n extF' wss
+    extF'                 = (A.map (\x -> -x)
+                             $ use
+                             $ A.fromList fSh
+                             $ L.concat
+                             $ L.map M.toList extF)
+    rs_init               = fill rSh d0
+    rSh                   = lift (Z :.n :.i2)
+    fSh                   = Z :.n' :.2
+    w'                    = A.replicate repSh w
+    repSh                 = lift $ Z :.All :.i2
+    (n', n, w, invs, wss) = liftData ds
 
 iter :: Int ->
         Acc (VectorList Double) ->
