@@ -1,5 +1,4 @@
 module ContactDynamics.Sequential.JacobiSolver where
-
 import ContactDynamics.Sequential.Disc
 import ContactDynamics.Sequential.Contact
 
@@ -8,54 +7,89 @@ import Numeric.LinearAlgebra.Util
 
 waa :: Contact -> Matrix Double -- 2x2 matrix
 waa (cd, an) =
-    trans h `multiply` m `multiply` h
+    trans h `multiply` inv m `multiply` h
     where
         h = contactMatrix (cd, an)
         m = diagBlock [massM cd, massM an]
 
+neg :: Container c e => c e -> c e
+neg = scale (-1)
+
 wab :: Contact -> Contact -> Matrix Double -- 2x2 matrix
-wab (cd1, an1) (cd2, an2) =
-    trans h_alpha `multiply` m `multiply` h_beta
+wab alpha@(cd1, an1) beta@(cd2, an2) =
+    trans h_alpha `multiply` inv m `multiply` h_beta
     where
-      -- Normalize contacts: put the relevant disc as the candidate
-      alpha@(cd, _) = if cd1 == cd2 || cd1 == an2
-                      then (cd1, an1)
-                      else (an1, cd1)
-      beta = if cd == cd2 then (cd2, an2) else (an2, cd2)
-      h_alpha = takeRows 3 $ contactMatrix alpha -- 3x2 matrix
-      m = diagBlock [massM cd] -- 3x3 matrix
-      h_beta = takeRows 3 $ contactMatrix beta -- 3x2
+      common = if cd1 == cd2 || cd1 == an2 then cd1 else an1
+      h_alpha = (if common == cd1 then takeRows else dropRows) 3 $ contactMatrix alpha -- 3x2 matrix
+      h_beta = (if common == cd2 then takeRows else dropRows) 3 $ contactMatrix beta -- 3x2 matrix
+      m = massM common -- 3x3 matrix
 
-sumWab :: Contact -> [Contact] -> Vector Double -> Vector Double
-sumWab c cs r =
-    foldr add (fromList [0, 0]) prods
+sumWab :: [Contact] -> [Vector Double] -> Contact -> [Int] -> Vector Double
+sumWab cs rs c adjs =
+    neg $ foldr add (fromList [0, 0]) prods
         where
-          prods = zipWith mXv wabs (repeat r)
-          wabs = map (wab c) cs
+          prods = zipWith mXv wabs $ pick rs adjs
+          wabs = map (wab c) $ pick cs adjs
 
-jacobi :: [Disc] -> Vector Double -> [Vector Double]
-jacobi ds ext =
-    iter 10 r_init
-        where
-          cs = contacts ds
-          adjs = map (`adjContacts` cs) cs
-          r_init = replicate (length cs) $ fromList [0, 0]
-          --
-          iter :: Int -> [Vector Double] -> [Vector Double]
-          iter 0 rs = rs
-          iter k rs = iter (k-1) r_new
-              where
-                (cd1, an1) = head cs
-                (cd2, an2) = head $ tail cs
-                firstM = diagBlock [massM cd1, massM an1] -- 6x6
-                secondM = diagBlock [massM cd2, massM an2] -- 6x6
-                first = trans (contactMatrix (cd1, an1)) `multiply` firstM `mXv` ext -- 2x1
-                second = trans (contactMatrix (cd2, an2)) `multiply` secondM `mXv` ext -- 2x1
-                rhss = first : second : (drop 2 $ zipWith3 sumWab cs adjs rs)
-                waas = map waa cs
-                solver rhs waa =
-                    fromList
-                      (if (-(rhs @> 0)) < 0 then
-                           [inv waa `mXv` rhs @> 0, waa @@> (1, 1)]
-                       else [0, waa @@> (1, 1)])
-                r_new = zipWith solver rhss waas
+jacobi :: Int -> [Disc] -> [Vector Double] -> [Vector Double]
+jacobi n ds ext' =
+    iter n r_init cs ext adjs waas
+    where
+      cs = contacts ds
+      adjs = zipWith (`adjContacts` cs) cs (iterate (+ 1) 0)
+      -- r_init = replicate (length cs) $ fromList [0, 0]
+      r_init = replicate (length cs) $ fromList [0, 0]
+      waas = map waa cs
+      ext = zipWith calcExt ext' cs
+
+--iter :: Int -> [Vector Double] -> [Vector Double]
+iter :: (Eq a, Num a) => a -> [Vector Double] -> [Contact] -> [Vector Double] -> [[Int]] -> [Matrix Double] -> [Vector Double]
+iter 0 rs _ _ _ _ = rs
+iter k rs cs ext adjs waas = iter (k-1) r_new cs ext adjs waas
+    where
+      rhss' = zipWith (sumWab cs rs) cs adjs
+      rhss = zipWith (+) ext rhss'
+      r_new' = zipWith solver rhss waas
+      r_new = zipWith3 (\new old relax -> scale relax new + scale (1-relax) old) r_new' rs
+              $ map ((1/) . fromIntegral . length) adjs
+
+gauss :: [Disc] -> [Vector Double] -> [Vector Double] -> [Vector Double]
+gauss ds ext' rs =
+    iter' (length cs - 1) rs cs ext adjs waas
+    where
+      cs = contacts ds
+      adjs = zipWith (`adjContacts` cs) cs (iterate (+ 1) 0)
+      -- r_init = replicate (length cs) $ fromList [0, 0]
+      waas = map waa cs
+      ext = zipWith calcExt ext' cs
+
+iter' (-1) rs _ _ _ _ = rs
+iter' i rs cs ext adjs waas  =
+    iter' (i-1) (set i new_r rs) cs ext adjs waas
+      where
+        new_r = solver rhs waa
+        waa = waas !! i
+        rhs' = sumWab cs rs (cs !! i) (adjs !! i)
+        rhs = if i < 2 then
+                ext !! i + rhs'
+              else
+                rhs'
+
+set :: Int -> a -> [a] -> [a]
+set i x xs =
+  take (i-1) xs ++ x : drop i xs
+
+solver :: (Ord a, Field a) => Vector a -> Matrix a -> Vector a
+solver rhs waa =
+    if (rhs @> 0) > 0 then
+        inv waa `mXv` rhs
+        -- fromList [(inv waa `mXv` rhs @> 0), rhs @> 1 / waa @@> (1,1)]
+    else
+        fromList [0, 0]
+
+calcExt :: Vector Double -> Contact -> Vector Double
+calcExt f (cd, an) =
+    neg $ trans h `multiply` inv m `mXv` f
+    where
+      h = contactMatrix (cd, an)
+      m = diagBlock [massM cd, massM an]

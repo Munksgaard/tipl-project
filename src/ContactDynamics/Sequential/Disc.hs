@@ -8,20 +8,19 @@ data Disc = Disc { mass :: Double
                  , xpos :: Double
                  , ypos :: Double
                  , radius :: Double
+                 , discId :: Int
                  } deriving (Eq)
 
 instance Show Disc where
-    show disc = "<Disc (" ++ truncateShow 2 (xpos disc) ++ ", "
-                ++ truncateShow 2 (ypos disc) ++ ")>"
-        where
-          truncateShow places double = (\(x, y) -> (x ++) $ take places y)
-                                       $ break ((== ".") . (:[])) $ show double
+    show disc = "<Disc " ++ show (discId disc) ++ " >"
 
+stdDisc :: Disc
 stdDisc = Disc { mass = 1
                , inertia = 1
                , xpos = 0
                , ypos = 0
                , radius = 1
+               , discId = 0
                }
 
 dist :: Disc -> Disc -> Double
@@ -29,22 +28,34 @@ dist d1 d2 =
     sqrt ((xpos d2 - xpos d1)^2 + (ypos d2 - ypos d1)^2)
 
 genPyramid :: Integer -> [Disc]
-genPyramid levels =
-    concat [gen level | level <- [0 .. (levels - 1)]]
-        where
+genPyramid levels' =
+     take above ds ++ map (\d -> d { mass = 1 / 0, inertia = 1/0 }) (drop above ds)
+       where
+          ds = zipWith (\i d -> d { discId = i }) (iterate (1+) 0) $
+            concat [gen level | level <- [0 .. (levels' - 1)]]
+
           gen level = [stdDisc { xpos = x (fromInteger level) (fromInteger x'),
                                  ypos = y $ fromInteger level } | x' <- [0 .. level]]
-          y level = sqrt((2 * level)^2 - level^2) + 1
-          x level n = fromInteger levels - level + 2 * n
+          y level = levels - sqrt((2 * level)^2 - level^2) + 1
+          x level n = levels - level + 2 * n
+          above = round $ (levels - 1) * levels / 2
+          levels = fromInteger levels'
 
 angle :: Disc -> Disc -> Double
 angle d1 d2 =
-    acos $ x / h
+    if y < 0 then
+        2 * pi - angle
+    else
+        angle
     where
+      angle = acos $ x / h
       x = xpos d2 - xpos d1
       y = ypos d2 - ypos d1
       h = sqrt $ x^2 + y^2
 
-massM :: Disc -> Matrix Double
+pos :: Disc -> (Double, Double)
+pos d = (xpos d, ypos d)
+
+massM :: Disc -> Matrix Double -- 3x3 diagonal matrix
 massM d =
     diag (fromList [mass d, mass d, inertia d])
