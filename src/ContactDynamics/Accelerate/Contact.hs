@@ -3,66 +3,106 @@ module ContactDynamics.Accelerate.Contact where
 import ContactDynamics.Disc
 import Data.Array.Accelerate as A
 import Data.List as List
+import Numeric.LinearAlgebra as M
+import Numeric.LinearAlgebra.Util
 
-epsilon :: Exp Double
-epsilon = constant (0.0001 :: Double)
+type Contact = (Disc, Disc)
 
-data AccDiscs = AccDiscs { masses :: Acc (Array DIM2 Double)
-                         , pos    :: Acc (Array DIM2 Double)
-                         , radii  :: Acc (Vector Double)
-                         }
+epsilon :: Double
+epsilon = 0.0001
 
 ---- Calculate the contact space matrix inverses and the adjacent contacts
 -- [Disc] = 
 liftData :: [Disc] -> (Exp Int, Acc (Array DIM2 Double), Acc(Array DIM4 Double))
-liftData = undefined
-
-liftDiscs :: [Disc] -> AccDiscs
-liftDiscs ds = AccDiscs { masses = use $ fromList mSh $ masses'
-                        , pos    = use $ fromList pSh $ pos'
-                        , radii  = use $ fromList rSh $ radii'
-                        }
+liftData ds = (lift n, use inWaas', use wabss')
   where
-    masses' = foldl' (++) [] $ List.map (\x -> [mass x, mass x, inertia x]) ds
-    pos'    = foldl' (++) [] $ List.map (\x -> [xpos x, ypos x]) ds
-    radii'  = foldl' (++) [] $ List.map (\x -> [radius x]) ds
-    mSh     = Z :. dn :. 3
-    pSh     = Z :. dn :. 2
-    rSh     = Z :. dn
-    dn      = length ds
+    cs      = contacts ds
+    n       = length cs
+    inWaas' = inWaas cs
+    wabss'  = wabss cs
 
-radiusMatrix :: Exp Int -> Acc (Vector Double) -> Acc (Array DIM2 Double)
-radiusMatrix n r = A.zipWith (\x y -> (x+y)*(x+y)) r' $ A.transpose r'
-  where r'    = A.replicate repSh r
-        repSh = lift $ Z :.n :.All
-
-distanceMatrix :: Exp Int -> Acc (Array DIM2 Double) -> Acc (Array DIM2 Double)
-distanceMatrix n p = A.fold dot d0 diff'
+contacts :: [Disc] -> [Contact]
+contacts [] = []
+contacts (x:xs) = List.map (\d -> (x, d))
+                   (List.filter (contactp x) xs)
+                   ++ contacts xs
   where
-    d0     = constant 0.0 :: Exp Double
-    dot    = \x y -> x*x + y*y
-    diff'  = A.zipWith (-) pos1' pos2'
-    pos1'  = A.replicate repSh1 p
-    pos2'  = A.replicate repSh2 $ A.transpose p
-    repSh1 = lift $ Z :.n :.All :.All
-    repSh2 = lift $ Z :.n :.All :.All
+    contactp d1 d2 = dist d1 d2 <= (radius d1 + radius d2) + epsilon
 
-collisionMatrix :: Exp Int -> AccDiscs -> Acc (Array DIM2 Int)
-collisionMatrix n ads = A.zipWith (*) idxMask $ A.zipWith collisionCheck r d
+inWaas :: [Contact] -> Array DIM2 Double
+inWaas cs = A.fromList inWaasSh rawInWaas
   where
-    idxMask        = A.zipWith (*) killMask $ A.replicate repSh idxVector
-    killMask       = generate killSh killExp
-    killSh         = lift $ Z :.n :.n
-    killExp        =
-      \ix ->
-      let
-        (Z :.i :.j) = unlift ix
-      in
-       boolToInt $ i <=* j
-    repSh          = lift $ Z :.n :.All
-    idxVector      = A.enumFromN idxSh i1
-    i1             = constant 1 :: Exp Int
-    idxSh          = lift $ Z :.n
-    r              = radiusMatrix n $ radii ads
-    d              = distanceMatrix n $ pos ads
-    collisionCheck = (\x y -> boolToInt $ abs (x - y) <* epsilon)
+    rawInWaas = List.concat $ List.map (M.toList . M.takeDiag . inWaa) cs
+    inWaasSh  = Z :.n :.2
+    n         = length cs
+
+inWaa :: Contact -> Matrix Double
+inWaa (cd, an) =
+  inv $ trans h `multiply` inv m `multiply` h
+  where
+    h = contactMatrix(cd, an)
+    m = diagBlock [massM cd, massM an]
+
+wabss :: [Contact] -> Array DIM4 Double
+wabss cs = A.fromList wabssSh wabss'
+  where
+    wabss'  = List.concat $ List.map (wabs cs) cs
+    n       = length cs
+    wabssSh = Z :.n :. n :. 2 :. 2
+
+adjTo :: Contact -> Contact -> Bool
+adjTo alpha@(cd, an) beta
+  | alpha == beta     = False -- A contact is not adjacent to itself
+  | cd `isIn` beta
+    || an `isIn` beta = True
+  | otherwise         = False
+
+isIn :: Disc -> Contact -> Bool
+isIn d (cd, an) = d == cd || d == an
+
+wabs :: [Contact] -> Contact -> [Double]
+wabs cs alpha = flattenMatrices wabs'
+  where
+    wabs'     = maybeWabsToWab maybeWabs
+    maybeWabs = List.map (maybeWab alpha) cs
+
+-- Flatten a matrix into row major order
+flattenMatrix :: Matrix Double -> [Double]
+flattenMatrix = M.toList . M.flatten
+
+-- Flatten a list of matrices into row major order and append them in row major order
+flattenMatrices :: [Matrix Double] -> [Double]
+flattenMatrices = List.concat . (List.map flattenMatrix)
+
+maybeWabsToWab :: [Maybe (Matrix Double)] -> [Matrix Double]
+maybeWabsToWab = List.map maybeWabToWab
+
+maybeWabToWab :: Maybe (Matrix Double) -> Matrix Double
+maybeWabToWab Nothing     = buildMatrix 2 2 (\_ -> 0.0)
+maybeWabToWab (Just wab') = wab'
+
+maybeWab :: Contact -> Contact -> Maybe (Matrix Double)
+maybeWab alpha beta
+  | alpha `adjTo` beta = Just $ wab alpha beta
+  | otherwise          = Nothing
+
+wab :: Contact -> Contact -> Matrix Double
+wab alpha@(cd1, an1) beta@(cd2, an2) =
+  trans h_alpha `multiply` inv m `multiply` h_beta
+  where
+    common  = if cd1 == cd2 || cd1 == an2 then cd1 else an1
+    h_alpha = (if common == cd1 then M.takeRows else M.dropRows) 3 $
+              contactMatrix alpha
+    h_beta  = (if common == cd2 then M.takeRows else M.dropRows) 3 $
+              contactMatrix beta
+    m       = massM common
+
+contactMatrix :: Contact -> Matrix Double
+contactMatrix (cd, an) =
+  let phi = angle an cd
+      c   = cos phi
+      s   = sin phi
+      r1  = radius cd
+      r2  = radius an
+  in trans $ (2><6) [  c, s,   0, -c, -s,   0
+                    , -s, c, -r1,  s, -c, -r2 ]
