@@ -24,12 +24,18 @@ d2 = constant 2.0 :: Exp Double
 d3 = constant 3.0 :: Exp Double
 d4 = constant 4.0 :: Exp Double
 
+fromList' :: [Double] -> [M.Vector Double] -> [M.Vector Double]
+fromList' [] result = result
+fromList' raw rs = fromList' raw' ((M.fromList r):rs)
+  where
+    (r, raw') = L.splitAt 2 raw
+
 -- Int               = Number of iterations
 -- [Disc]            = The discs in the scene
 -- [M.Vector Double] = The external force, a list of vectors
 -- VectorList Double = The resultant impulses on [Disc], a Nx2 vector-matrix
-bnljSolver :: Int -> [Disc] -> [M.Vector Double] -> VectorList Double
-bnljSolver maxIter ds extF = Backend.run (iter' step rs_init)
+bnljSolver :: Int -> [Disc] -> [M.Vector Double] -> [M.Vector Double]
+bnljSolver maxIter ds extF = flip fromList' [] $ A.toList $ Backend.run (iter' step rs_init)
   where
     iter'                 = iter maxIter w'
     step                  = solveRHS' . calcRHS'
