@@ -13,13 +13,13 @@ epsilon = 0.0001
 
 ---- Calculate the contact space matrix inverses and the adjacent contacts
 -- [Disc] = 
-liftData :: [Disc] -> (Exp Int, Acc (Array DIM2 Double), Acc(Array DIM4 Double))
-liftData ds = (lift n, use inWaas', use wabss')
+liftData :: [Disc] -> (Exp Int, Acc (Array DIM1 Double), Acc (Array DIM2 Double), Acc(Array DIM4 Double))
+liftData ds = (lift n, use w, use inWaas', use wabss')
   where
-    cs      = contacts ds
-    n       = length cs
-    inWaas' = inWaas cs
-    wabss'  = wabss cs
+    cs          = contacts ds
+    n           = length cs
+    inWaas'     = inWaas cs
+    (w, wabss') = wabss cs
 
 contacts :: [Disc] -> [Contact]
 contacts [] = []
@@ -43,12 +43,15 @@ inWaa (cd, an) =
     h = contactMatrix(cd, an)
     m = diagBlock [massM cd, massM an]
 
-wabss :: [Contact] -> Array DIM4 Double
-wabss cs = A.fromList wabssSh wabss'
+wabss :: [Contact] -> (Array DIM1 Double, Array DIM4 Double)
+wabss cs = (ws'', wabss'')
   where
-    wabss'  = List.concat $ List.map (wabs cs) cs
-    n       = length cs
-    wabssSh = Z :.n :. n :. 2 :. 2
+    ws''          = A.fromList wSh ws'
+    wabss''       = A.fromList wabssSh $ List.concat wabss'
+    (ws', wabss') = List.unzip $ List.map (wabs cs) cs
+    n             = length cs
+    wabssSh       = Z :.n :. n :. 2 :. 2
+    wSh           = Z :.n
 
 adjTo :: Contact -> Contact -> Bool
 adjTo alpha@(cd, an) beta
@@ -60,11 +63,11 @@ adjTo alpha@(cd, an) beta
 isIn :: Disc -> Contact -> Bool
 isIn d (cd, an) = d == cd || d == an
 
-wabs :: [Contact] -> Contact -> [Double]
-wabs cs alpha = flattenMatrices wabs'
+wabs :: [Contact] -> Contact -> (Double, [Double])
+wabs cs alpha = (w', flattenMatrices wabs')
   where
-    wabs'     = maybeWabsToWab maybeWabs
-    maybeWabs = List.map (maybeWab alpha) cs
+    (w', wabs') = maybeWabsToWab maybeWabs
+    maybeWabs   = List.map (maybeWab alpha) cs
 
 -- Flatten a matrix into row major order
 flattenMatrix :: Matrix Double -> [Double]
@@ -74,12 +77,15 @@ flattenMatrix = M.toList . M.flatten
 flattenMatrices :: [Matrix Double] -> [Double]
 flattenMatrices = List.concat . (List.map flattenMatrix)
 
-maybeWabsToWab :: [Maybe (Matrix Double)] -> [Matrix Double]
-maybeWabsToWab = List.map maybeWabToWab
+maybeWabsToWab :: [Maybe (Matrix Double)] -> (Double, [Matrix Double])
+maybeWabsToWab mwabs = (1.0 / w'', wabs')
+  where
+    w''         = Prelude.fromIntegral $ foldl' (+) 0 w'
+    (w', wabs') = List.unzip $ List.map maybeWabToWab mwabs
 
-maybeWabToWab :: Maybe (Matrix Double) -> Matrix Double
-maybeWabToWab Nothing     = buildMatrix 2 2 (\_ -> 0.0)
-maybeWabToWab (Just wab') = wab'
+maybeWabToWab :: Maybe (Matrix Double) -> (Int, Matrix Double)
+maybeWabToWab Nothing     = (0, buildMatrix 2 2 (\_ -> 0.0))
+maybeWabToWab (Just wab') = (1, wab')
 
 maybeWab :: Contact -> Contact -> Maybe (Matrix Double)
 maybeWab alpha beta

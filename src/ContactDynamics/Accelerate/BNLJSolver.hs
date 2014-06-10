@@ -27,20 +27,31 @@ d4 = constant 4.0 :: Exp Double
 -- VectorList Double = The external force, a Nx2 vector-matrix
 -- VectorList Double = The resultant impulses on [Disc], a Nx2 vector-matrix
 bnljSolver :: Int -> [Disc] -> VectorList Double -> VectorList Double
-bnljSolver maxIter ds extF = Backend.run (iter' step rs_init)    
+bnljSolver maxIter ds extF = Backend.run (iter' step rs_init)
   where
-    iter'          = iter maxIter
-    step           = solveRHS' . calcRHS'
-    solveRHS'      = solveRHS invs
-    calcRHS'       = calcRHS n extF' wss
-    extF'          = A.map (\x -> x) $ use extF
-    rs_init        = fill rsSh d0
-    rsSh           = lift (Z :.n :.i2)
-    (n, invs, wss) = liftData ds
+    iter'             = iter maxIter w'
+    step              = solveRHS' . calcRHS'
+    solveRHS'         = solveRHS invs
+    calcRHS'          = calcRHS n extF' wss
+    extF'             = A.map (\x -> -x) $ use extF
+    rs_init           = fill rsSh d0
+    rsSh              = lift (Z :.n :.i2)
+    w'                = A.replicate repSh w
+    repSh             = lift $ Z :.All :.i2
+    (n, w, invs, wss) = liftData ds
 
-iter :: Int -> (Acc (VectorList Double) -> Acc (VectorList Double)) -> Acc (VectorList Double) -> Acc (VectorList Double)
-iter 0 _ rs = rs
-iter n solver rs = iter (n-1) solver (solver rs)
+iter :: Int ->
+        Acc (VectorList Double) ->
+        (Acc (VectorList Double) -> Acc (VectorList Double)) ->
+        Acc (VectorList Double) ->
+        Acc (VectorList Double)
+iter 0 _ _ rs = rs
+iter n w solver rs = iter (n-1) w solver (rs'')
+  where
+    rs'' = A.zipWith (+)
+           (A.zipWith (*) w rs')
+           (A.zipWith(\x y -> (1-x) * y) w rs)
+    rs'  = solver rs
 
 ---- Calculate right hand side
 -- Exp Int                 = N: A constant that tells us the total number of contacts
