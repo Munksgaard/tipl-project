@@ -31,8 +31,8 @@ sumWab cs rs c adjs =
           prods = zipWith mXv wabs $ pick rs adjs
           wabs = map (wab c) $ pick cs adjs
 
-jacobi :: Int -> [Disc] -> Vector Double -> [Vector Double]
-jacobi n ds ext =
+jacobi :: Int -> [Disc] -> [Vector Double] -> [Vector Double]
+jacobi n ds ext' =
     iter n r_init cs ext adjs waas
     where
       cs = contacts ds
@@ -40,28 +40,28 @@ jacobi n ds ext =
       -- r_init = replicate (length cs) $ fromList [0, 0]
       r_init = replicate (length cs) $ fromList [0, 0]
       waas = map waa cs
+      ext = zipWith calcExt ext' cs
 
 --iter :: Int -> [Vector Double] -> [Vector Double]
-iter :: (Eq a, Num a) => a -> [Vector Double] -> [Contact] -> Vector Double -> [[Int]] -> [Matrix Double] -> [Vector Double]
+iter :: (Eq a, Num a) => a -> [Vector Double] -> [Contact] -> [Vector Double] -> [[Int]] -> [Matrix Double] -> [Vector Double]
 iter 0 rs _ _ _ _ = rs
 iter k rs cs ext adjs waas = iter (k-1) r_new cs ext adjs waas
     where
       rhss' = zipWith (sumWab cs rs) cs adjs
-      rhss = topStuff ext (head cs) + head rhss'
-             : topStuff ext (cs !! 1) + rhss' !! 1
-             : drop 2 rhss'
+      rhss = zipWith (+) ext rhss'
       r_new' = zipWith solver rhss waas
       r_new = zipWith3 (\new old relax -> scale relax new + scale (1-relax) old) r_new' rs
               $ map ((1/) . fromIntegral . length) adjs
 
-gauss :: [Disc] -> Vector Double -> [Vector Double] -> [Vector Double]
-gauss ds ext rs =
+gauss :: [Disc] -> [Vector Double] -> [Vector Double] -> [Vector Double]
+gauss ds ext' rs =
     iter' (length cs - 1) rs cs ext adjs waas
     where
       cs = contacts ds
       adjs = zipWith (`adjContacts` cs) cs (iterate (+ 1) 0)
       -- r_init = replicate (length cs) $ fromList [0, 0]
       waas = map waa cs
+      ext = zipWith calcExt ext' cs
 
 iter' (-1) rs _ _ _ _ = rs
 iter' i rs cs ext adjs waas  =
@@ -71,7 +71,7 @@ iter' i rs cs ext adjs waas  =
         waa = waas !! i
         rhs' = sumWab cs rs (cs !! i) (adjs !! i)
         rhs = if i < 2 then
-                topStuff ext (cs !! i) + rhs'
+                ext !! i + rhs'
               else
                 rhs'
 

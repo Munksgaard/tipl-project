@@ -63,7 +63,7 @@ contactsToSVG levels filename iters =
       C.renderWith surface $ renderDiscs (fromInteger scaler) discs
       C.renderWith surface $ renderContacts (fromInteger scaler) $ zip cs rs
     cs = contacts discs
-    rs = jacobi iters discs $ fromList [0,-1,0,0,0,0]
+    rs = jacobi iters discs $ replicate 2 (fromList [0,-1,0,0,0,0]) ++ replicate (length cs - 2) (fromList [0,0,0,0,0,0])
     discs = genPyramid levels
 
 gaussSVG :: Integer -> FilePath -> [Disc] -> [Contact] -> [Vector Double] -> IO ()

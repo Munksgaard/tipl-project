@@ -12,7 +12,7 @@ ds = genPyramid 3
 cs = contacts ds
 c1 = head cs
 c2 = head $ tail cs
-ext = fromList [0,-1,0,0,0,0] :: Vector Double
+ext = fromList [0,-1,0,0,0,0] : fromList [0,-1,0,0,0,0] : replicate (length cs - 2) (fromList [0,0,0,0,0,0]) :: [Vector Double]
 
 adjs = zipWith (`adjContacts` cs) cs $ iterate (1+) 0
 
