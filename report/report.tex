@@ -8,6 +8,7 @@
 \usepackage{amssymb}
 \usepackage{amsmath}
 \usepackage{graphicx}
+\usepackage{listings}
 
 %% Authors and other title stuff
 \title{Implementing and Solving a Contact Dynamics Problem on the GPU}
@@ -190,6 +191,63 @@ find RHS, we can, by exclusion, find the impulse in a contact $\alpha$. For
 finding the right-hand side, we use a series of continually improved estimates,
 and this is where our Jacobi solver comes in.
 
+\section{Initial Haskell implementation of the Jacobi solver}
+
+The Jacobi method is an algorithm for determining the solution for a linear
+system of equations. By regarding the contact impulses as our linear equations
+(which makes sense since they rely on each other), the Jacobi method allows us
+to iteratively refine a guess for the impulse values, until at some point they
+converge.
+
+The ordinary Haskell implementation uses the library \verb+hmatrix+, a ``purely
+functional interface to basic linear algebra'', which internally uses GSL (the
+GNU Scientific Library), as well as BLAS and LAPACK which are both low level
+libraries for linear algebra. The entire code can be seen in appendix
+\ref{app:seq}.
+
+For each iteration of our Jacobi solver, we have to find the right-hand side of
+\begin{equation}
+  W_{\alpha\alpha} r_\alpha^{k+1} - v_\alpha^{k+1}= - H_i^T M_i^{-1} R_i^{ext}
+  - \displaystyle\sum\limits_{\beta \neq \alpha} W_{\alpha\beta} r_\beta^k
+\end{equation}
+and solve the equation with regards to the constraints given above. To do this,
+we use the function \verb+iter+, which takes a list of estimated impulses, a
+list of all the contacts in the system, a list of external forces for each
+contact, and precomputed lists of adjacent contacts and $W_{\alpha\alpha}$
+values, and runs $k$ steps of the solver.
+
+\begin{verbatim}
+iter :: (Eq a, Num a) => a -> [Vector Double] -> [Contact] -> [Vector Double]
+        -> [[Int]] -> [Matrix Double] -> [Vector Double]
+iter 0 rs _ _ _ _ = rs
+iter k rs cs ext adjs waas = iter (k-1) r_new cs ext adjs waas
+    where
+      rhss' = zipWith (sumWab cs rs) cs adjs
+      rhss = zipWith (+) ext rhss'
+      r_new' = zipWith solver rhss waas
+      r_new = zipWith3 relaxer r_new' rs
+                $ map ((1/) . fromIntegral . length) adjs
+      relaxer new old relax = scale relax new + scale (1-relax) old
+\end{verbatim}
+Notice that we have added a relaxation term to each guess. It turned out to be
+necessary in order to achieve convergence; without it, the total sum of
+impulses would continue to grow forever.
+
+The function \verb+iter+ relies on the function \verb+sumWab+ which takes a
+contact and sums up the products of adjacent contacts and their impulses.
+\begin{verbatim}
+sumWab :: [Contact] -> [Vector Double] -> Contact -> [Int] -> Vector Double
+sumWab cs rs c adjs =
+    neg $ foldr add (fromList [0, 0]) prods
+        where
+          prods = zipWith mXv wabs $ pick rs adjs
+          wabs = map (wab c) $ pick cs adjs
+\end{verbatim}
+
 \section{Parallel implementation in Accelerate}
+
+\section{Results}
+
+\section{Conclusion}
 
 \end{document}
