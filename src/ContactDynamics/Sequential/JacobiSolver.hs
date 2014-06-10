@@ -1,5 +1,5 @@
 module ContactDynamics.Sequential.JacobiSolver where
-import ContactDynamics.Sequential.Disc
+import ContactDynamics.Disc
 import ContactDynamics.Sequential.Contact
 
 import Numeric.LinearAlgebra

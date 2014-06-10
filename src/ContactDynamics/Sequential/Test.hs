@@ -1,8 +1,8 @@
 module ContactDynamics.Sequential.Test where
 
-import ContactDynamics.Sequential.Disc
+import ContactDynamics.Disc
 import ContactDynamics.Sequential.Contact
-import ContactDynamics.Sequential.Render
+import ContactDynamics.Render
 import ContactDynamics.Sequential.JacobiSolver
 
 import Numeric.LinearAlgebra
@@ -42,4 +42,3 @@ cs2 :: [Contact]
 cs2 = contacts ds2
 
 drawGauss n = mapM_ (\(r, i) -> gaussSVG 3 (show i ++ ".svg") ds cs r) $ zip (take n $ iterate (gauss ds ext) r_init) (iterate (1+) 0)
-

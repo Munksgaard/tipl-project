@@ -1,6 +1,6 @@
-module ContactDynamics.Sequential.Render where
+module ContactDynamics.Render where
 
-import ContactDynamics.Sequential.Disc
+import ContactDynamics.Disc
 import ContactDynamics.Sequential.Contact
 import ContactDynamics.Sequential.JacobiSolver
 
