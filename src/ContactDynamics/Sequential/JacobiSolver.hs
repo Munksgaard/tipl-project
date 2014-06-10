@@ -87,8 +87,8 @@ solver rhs waa =
     else
         fromList [0, 0]
 
-topStuff :: Vector Double -> Contact -> Vector Double
-topStuff f (cd, an) =
+calcExt :: Vector Double -> Contact -> Vector Double
+calcExt f (cd, an) =
     neg $ trans h `multiply` inv m `mXv` f
     where
       h = contactMatrix (cd, an)
