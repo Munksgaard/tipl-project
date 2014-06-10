@@ -113,6 +113,83 @@ imposes constraints on how computations can be done, we also wish to run
 performance tests, comparing the GPGPU implementation with implementations of
 the solver running on traditional sequential hardware, in order to discuss the
 efficiency of the implementation.
+
+\section{Contact Dynamics}
+
+We will focus on computing the impulses for a contact $\alpha$ of a body $i$ in
+one timestep. For a body $i$, let $M_i$ be the $3 \times 3$ diagonal mass
+matrix, with the third component of the diagonal being the inertia of $i$, let
+$V_i$ and $V_i^-$ be the velocity vectors of the current and last timestep for
+the body $i$, and let $R_i$ and $R_i^{ext}$ be the external and contact impulses
+applied to the body. We then have the following relationship between motion
+over time for the body $i$:
+
+\begin{equation}
+  M_i(V_i - V_i^-) = R_i + R_i^{ext}
+\end{equation}
+
+Clearly, if we can find the contact impulses for the body $i$, we can find the
+velocity of the body in the current step.
+
+In order to do this, we need to find the relative velocity for each contact
+between $i$ and adjacent bodies. We call a contact $\alpha$, where each
+$\alpha$ has two bodies in contact, called the candiate and the antagonist. The
+relative velocity $v_\alpha$ is expressed from $V_{cd}$ and $V_{an}$ as
+\begin{equation}
+  v_\alpha =
+  \begin{pmatrix}
+    H_\alpha^{cd} &
+    H_\alpha^{an}
+  \end{pmatrix}
+  \begin{pmatrix}
+    V_{cd} \\
+    V_{an}
+  \end{pmatrix}
+\end{equation},
+where $H_\alpha^{cd}$ and $H_\alpha^{an}$ are rotational matrices for the angle
+between the antagonist and candidate.
+
+For the body $i$, we may then introduce the following equation
+\begin{equation}
+  v_i = H_i^TV_i
+\end{equation}
+where $v_i$ is the concatenated vector of relative velocities for the contacts
+related to $i$ and $H_i$ is the concatenated vector of rotational matrices for a
+specific body and it's contacts. By duality consideration, we may also show that
+the following relationship between contact impulses $r_i$ and the resultant
+impulse $R_i$ on body $i$ are
+\begin{equation}
+R_i = H_i r_i
+\end{equation}
+
+Letting $W_i = H_i^TM_i^{-1}H_i$, we now have
+\begin{align}
+  & M_i(V_i - V_i^-) = R_i + R_i^{ext} \\
+  \Leftrightarrow \quad & H_i^T V_i - H_i^T V_i^-) = H_i^TM_i^{-1} R_i + H_i^T
+  M_i^{-1} R_i^{ext}
+  \\
+  \Leftrightarrow \quad & v_i - v_i^{-} = H_i^T M_i^{-1}H_i r + H_i^T M_i^{-1} R^{ext} \\
+  \Leftrightarrow \quad & v_i - v_i^{-} = W_i r + H_i^T M_i^{-1} R^{ext} \\
+  \Leftrightarrow \quad & W_i r - v_i = -v_i^{-} - H_i^T M_i^{-1} R^{ext}
+\end{align}
+Where we call $-v_i^{-} - H_i^T M_i^{-1} R^{ext}$ our right-hand side (RHS).
+Additionally, for a contact $\alpha$, we have the following relationship between
+its impulse $r_\alpha$ and the relative velocity of the bodies in contact
+$v_\alpha$:
+
+\begin{equation}
+  v_\alpha \geq 0, \quad r_\alpha \geq 0, \quad r_\alpha \cdot v_\alpha = 0
+\end{equation}
+
+Meaning that if two bodies are in contact, they are either moving away from
+each other, relative to the contact normal, or they are pushing against each
+other~\footnote{Additionally, there is the possibility that there is neither
+  impulse nor velocity relative to the contact normal, but we can disregard
+  this case, as it has no effect on the outcome}. This means, that if we can
+find RHS, we can, by exclusion, find the impulse in a contact $\alpha$. For
+finding the right-hand side, we use a series of continually improved estimates,
+and this is where our Jacobi solver comes in.
+
 \section{Parallel implementation in Accelerate}
 
 \end{document}
