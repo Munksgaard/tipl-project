@@ -27,7 +27,7 @@
 \maketitle
 
 \begin{abstract}
-Estimating contact impulses physical systems of rigid bodies is a
+Estimating contact impulses in physical systems of rigid bodies is a
 computationally expensive problem, because the impulse in each contact is a
 function of all the adjacent contact impulses as well as any external
 forces. In a pyramid of 2-dimensional discs, the total number of contacts is
@@ -60,7 +60,7 @@ Simulating bodies in a system is easy, as long as no interactions between
 bodies occur, eg. there are no collision. In that case, the acceleration of an
 object is linearly proportional to its mass and any external forces that act
 upon it. However, when rigid bodies collide there is a nonsmooth relationship
-between velocities and forces that have to be handled. In complex systems with
+between velocities and forces that has to be handled. In complex systems with
 many bodies, these collisions become very numerous, and calculating the
 resulting changes in movement of the bodies become computationally expensive.
 
@@ -114,7 +114,7 @@ we have to take up to 10 other contacts into account when calculating its
 impulse, as can easily be seen in figure \ref{fig:upto10}. Furthermore, as
 contact impulses depend on adjacent contact impulses, we cannot easily
 calculate an analytical solution. Instead, we have to compute the solution
-numerically, by using intermediate estimates to iteratively produces better and
+numerically, by using intermediate estimates to iteratively produce better and
 better estimates for the contact impulses until we reach convergence.
 
 \begin{figure}
@@ -337,9 +337,16 @@ Apart from the difference in method, we don't apply relaxation when using the
 Gauss-Seidel model, which might also explain why our results never converge to
 a single value. Instead, after a number of iterations, the Gauss-Seidel method
 seems to settle on a handful of different configurations, which it then cycles
-between. This is to be expected, given the nature of the Gauss-Seidel
+between, as seen on figure \ref{fig:gauss}. This is to be expected, given the nature of the Gauss-Seidel
 method. However, it is very possible that some form of relaxation could help
 alleviate that problem.
+
+\begin{figure}
+  \centering
+  \includegraphics{figures/gauss.png}
+  \caption{}
+  \label{fig:gauss}
+\end{figure}
 
 \section{Parallel implementation in Accelerate\label{parjacobi}}
 Porting code from a conventional single-CPU architecture to the massively
@@ -371,7 +378,7 @@ computations.
 
 Accelerate borrows a lot of concepts for expressing arrays, array shapes and
 operations on those, from Repa\cite{repa}, another Haskell library for expressing parallel
-operations, that doesn't use GPUS.
+operations, that is aimed at the CPU instead of the GPU.
 
 \subsection{Identifying parallel structure in sequential code\label{identpara}}
 Looking at the sequential implementation
