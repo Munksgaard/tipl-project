@@ -89,17 +89,15 @@ solveRHS inWaas rhss = A.zipWith (*) condM $ A.zipWith (*) inWaas rhss
 -- arg  3: A list of the previous impulses for each contact
 -- result: a list of the matrix-vector product sums of wabs and impulses for each contact
 wXr :: Exp Int -> Acc Wxxss -> Acc(VectorList Double) -> Acc(VectorList Double)
-wXr n wabss' rs' = rowRowSums
+wXr n wabss rs' = rowRowSums
   where
     rowRowSums = permute (+) zeros rowFold products
-    products   = reshape nxnx2x2Sh $ A.zipWith (*) wabs rs
+    products   = A.zipWith (*) wabss rs
     zeros      = fill nx2Sh d0
-    wabs       = flatten wabss'
-    rs         = flatten $ A.replicate repSh2 $ A.replicate repSh1 rs'
+    rs         = A.replicate repSh2 $ A.replicate repSh1 rs'
     nx2Sh      = lift $ Z :.n   :.i2
     repSh2     = lift $ Z :.n   :.All :.All :.All
     repSh1     = lift $ Z :.All :.i2  :.All
-    nxnx2x2Sh  = lift $ Z :.n   :.n   :.i2  :.i2
     rowFold ix = index2
                  (indexHead $ indexTail $ indexTail $ indexTail ix)
                  (indexHead $ indexTail ix)
