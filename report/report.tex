@@ -27,7 +27,19 @@
 \maketitle
 
 \begin{abstract}
-abstract
+Estimating contact impulses physical systems of rigid bodies is a
+computationally expensive problem, because the impulse in each contact is a
+function of all the adjacent contact impulses as well as any external
+forces. In a pyramid of 2-dimensional discs, the total number of contacts is
+$\frac{3h}{2} (h-1)$, and for each of these contacts we need to take up to 10
+adjacent contacts into account.
+
+We have implemented a solver for this problem that utilizes the massively
+parallel architecture of GPUs in order to obtain significant performance gains
+compared to a regular single-processor implementation. It turns out to be very
+efficient for large pyramids with many iterations, while still leaving some
+room for improvements.
+
 \end{abstract}
 
 \section{Introduction}
@@ -280,15 +292,19 @@ previous contact impulse values found \emph{in that same iteration}.
 To compute contact impulses using the Gauss-Seidel method, we use the following
 two functions, in addition the some of the helper functions from before:
 \begin{verbatim}
-gauss :: [Disc] -> [Vector Double] -> [Vector Double] -> [Vector Double]
-gauss ds ext' rs =
-    iter' (length cs - 1) rs cs ext adjs waas
+gauss :: Int -> [Disc] -> [Vector Double] -> [Vector Double]
+gauss n ds ext' =
+  gauss' n r_init
     where
       cs = contacts ds
+      ncs = length cs - 1
       adjs = zipWith (`adjContacts` cs) cs (iterate (+ 1) 0)
-      -- r_init = replicate (length cs) $ fromList [0, 0]
       waas = map waa cs
+      r_init = replicate (length cs) $ fromList [0, 0]
       ext = zipWith calcExt ext' cs
+      gauss' 0 rs = rs
+      gauss' n rs = gauss' (n-1) $
+                    iter' ncs rs cs ext adjs waas
 \end{verbatim}
 \begin{verbatim}
 iter' (-1) rs _ _ _ _ = rs
@@ -303,14 +319,13 @@ iter' i rs cs ext adjs waas  =
               else
                 rhs'
 \end{verbatim}
-Apart from the difference in method, the semantics are slightly different, as
-\verb+gauss+ only computes one iteration at a time. Furthermore, we don't apply
-relaxation when using the Gauss-Seidel model, which might also explain why our
-results never converge to a single value. Instead, after a number of
-iterations, the Gauss-Seidel method seems to settle on a handful of different
-configurations, which it then cycles between. This is to be expected, given the
-nature of the Gauss-Seidel method. However, it is very possible that some form
-of relaxation could help alleviate that problem.
+Apart from the difference in method, we don't apply relaxation when using the
+Gauss-Seidel model, which might also explain why our results never converge to
+a single value. Instead, after a number of iterations, the Gauss-Seidel method
+seems to settle on a handful of different configurations, which it then cycles
+between. This is to be expected, given the nature of the Gauss-Seidel
+method. However, it is very possible that some form of relaxation could help
+alleviate that problem.
 
 \section{Parallel implementation in Accelerate}
 Porting code from a conventional single-CPU architecture to the massively
@@ -590,5 +605,25 @@ the core iteration step of the Jacobi solver.
 \end{itemize}
 
 \section{Conclusion}
+
+We have implemented three different methods for calculating the contact
+impulses between rigid bodies in a 2-dimensional system. First we used Haskel
+to create a Jacobi solver, then we slightly modified the Jacobi solver in order
+to obtain a Gauss-Seidel solver, and finally we implemented the a parallelized
+Jacobi solver using Accelerate, which targets the GPU.
+
+By utilizing the GPUs massively parallel architecture for our Jacobi solver, we
+obtained significant performance gains. And while there are avenues
+for improving the sequential solvers, so is the case for the parallel solver,
+where we expect to see even greater performance gains.
+
+\begin{thebibliography}{4}
+\bibitem{proceeding2} Chakravarty, Manuel MT, et al.: ``Accelerating Haskell
+  array codes with multicore GPUs.'' Proceedings of the sixth workshop on
+  Declarative aspects of multicore programming. ACM, (2011).
+
+\bibitem{proceeding2} Keller, Gabriele, et al.: ``Regular, shape-polymorphic,
+  parallel arrays in Haskell.'' ACM Sigplan Notices. Vol. 45. No. 9. ACM, 2010.
+\end{thebibliography}
 
 \end{document}
