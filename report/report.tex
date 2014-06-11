@@ -215,8 +215,15 @@ contact, and precomputed lists of adjacent contacts and $W_{\alpha\alpha}$
 values, and runs $k$ steps of the solver.
 
 \begin{verbatim}
-iter :: (Eq a, Num a) => a -> [Vector Double] -> [Contact] -> [Vector Double]
-        -> [[Int]] -> [Matrix Double] -> [Vector Double]
+iter :: (Eq a, Num a) =>
+        a               -> -- Number of iterations
+        [Vector Double] -> -- Previous impulses
+        [Contact]       -> -- Contacts in the system
+        [Vector Double] -> -- External force on each contact
+        [[Int]]         -> -- List of indices for adjacent contacts
+                           -- for each contact
+        [Matrix Double] -> -- List of Waa for each contact a
+        [Vector Double] -> -- Next impulses
 iter 0 rs _ _ _ _ = rs
 iter k rs cs ext adjs waas = iter (k-1) r_new cs ext adjs waas
     where
