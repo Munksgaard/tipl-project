@@ -571,4 +571,15 @@ for calculating the iterations.
 
 \section{Conclusion}
 
+We have implemented three different methods for calculating the contact
+impulses between rigid bodies in a 2-dimensional system. First we used Haskel
+to create a Jacobi solver, then we slightly modified the Jacobi solver in order
+to obtain a Gauss-Seidel solver, and finally we implemented the a parallelized
+Jacobi solver using Accelerate, which targets the GPU.
+
+By utilizing the GPUs massively parallel architecture for our Jacobi solver, we
+obtained significant performance gains. And while there are avenues
+for improving the sequential solvers, so is the case for the parallel solver,
+where we expect to see even greater performance gains.
+
 \end{document}
