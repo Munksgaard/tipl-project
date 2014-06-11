@@ -255,6 +255,56 @@ solver rhs waa =
 
 All in all, these functions allow us to iteratively estimate the contact
 impulses for a set of discs.
+
+\subsection{The Gauss-Seidel solver}
+
+We have also implemented a solver using the Gauss-Seidel method, which, while
+very similiar to the Jacobi method in its basic outline, is conceptually
+different, and yields slightly different results for our tests.
+
+Where the solver using the Jacobi method does a complete run through all the
+contacts in a configuration before they are updated, the Gauss-Seidel solver
+updates the impulse estimates after each contact has been processed. So in
+effect, while the Jacobi metod allows for contact impulse estimates to be
+computed in parallel in each iteration, the contact impulse values computed
+with the Gauss-Seidel method depends on the contact impulse values for all the
+previous contact impulse values found \emph{in that same iteration}.
+
+To compute contact impulses using the Gauss-Seidel method, we use the following
+two functions, in addition the some of the helper functions from before:
+\begin{verbatim}
+gauss :: [Disc] -> [Vector Double] -> [Vector Double] -> [Vector Double]
+gauss ds ext' rs =
+    iter' (length cs - 1) rs cs ext adjs waas
+    where
+      cs = contacts ds
+      adjs = zipWith (`adjContacts` cs) cs (iterate (+ 1) 0)
+      -- r_init = replicate (length cs) $ fromList [0, 0]
+      waas = map waa cs
+      ext = zipWith calcExt ext' cs
+\end{verbatim}
+\begin{verbatim}
+iter' (-1) rs _ _ _ _ = rs
+iter' i rs cs ext adjs waas  =
+    iter' (i-1) (set i new_r rs) cs ext adjs waas
+      where
+        new_r = solver rhs waa
+        waa = waas !! i
+        rhs' = sumWab cs rs (cs !! i) (adjs !! i)
+        rhs = if i < 2 then
+                ext !! i + rhs'
+              else
+                rhs'
+\end{verbatim}
+Apart from the difference in method, the semantics are slightly different, as
+\verb+gauss+ only computes one iteration at a time. Furthermore, we don't apply
+relaxation when using the Gauss-Seidel model, which might also explain why our
+results never converge to a single value. Instead, after a number of
+iterations, the Gauss-Seidel method seems to settle on a handful of different
+configurations, which it then cycles between. This is to be expected, given the
+nature of the Gauss-Seidel method. However, it is very possible that some form
+of relaxation could help alleviate that problem.
+
 \section{Parallel implementation in Accelerate}
 
 \section{Results}
