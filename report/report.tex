@@ -307,6 +307,33 @@ of relaxation could help alleviate that problem.
 
 \section{Parallel implementation in Accelerate}
 
+Porting code from a conventional single-CPU architecture to the massively
+parallel SIMD architecture of GPUs, is, in general, not trivial. The SIMD
+architecture imposes many constraints on how effectively certain computations
+can be performed. For example, branches in the code, such as \verb+if+
+statements or the like, have to be sequentialized in order to run on the
+GPU. That is, if an \verb+if+ statement introduces two new ``branches'' in the
+code, the GPU cannot compute the two branches in parallel, but must instead
+compute the first branch by itself, followed by the second branch. Similarly,
+GPUs cannot handle arbitrary data types such as nested data structures
+(eg. arrays in arrays) or functional values. However, GPUs excel at performing
+lots of identical but independent computations across large arrays or
+matrices. For example, adding two large matrices together is trivially
+parallelizable, since each core on the GPU can add indices from the matrices
+together, independently from all the other cores. When porting code to the GPU,
+it is therefore imperative that we have these limitations and advantages in
+mind.
+
+Accelerate allows us to express computations for the GPU inside
+Haskell. However, in order to do so without sacrificing too much of the speed
+advantage that GPUs enable, it imposes even further restrictions on what we can
+express. First of all, we have to explicitly move data back and forth between
+the host and the GPU, but secondly the language for expressing computations on
+the GPU is rather limited. Most importantly, we can only use flat
+data-parallelism involving only regular, multi-dimensional arrays; Accelerate
+is a stratified language, which distinguishes between collective and scalar
+computations.
+
 \section{Results}
 
 \section{Conclusion}
