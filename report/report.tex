@@ -35,10 +35,10 @@ abstract
 This report describes the design and implementation of a parallel Jacobi solver
 for a contact dynamics problem in Haskell. The goal of this project has been to
 compute the contact impulses between rigid bodies in a 2-dimensional system
-using Accelerate, a Haskell embedded language for general purpose GPU
-programming (GPGPU). To do so, and to assess the efficiency of the parallel
-implementation, we also implemented the Jacobi solver, as well as an iterative
-Gauss-Seidel solver, in regular Haskell.
+using Accelerate, a Haskell embedded domain specific language (EDSL) for general
+purpose GPU programming (GPGPU). To do so, and to assess the efficiency of the
+parallel implementation, we also implemented the Jacobi solver, as well as a
+Gauss-Seidel solver, in regular sequential Haskell.
 
 % Thanks to Vincent and Martin?
 
@@ -65,18 +65,18 @@ stay perfectly still and there will be no impulses. Now, imagine that we apply
 a downward force to disc 0. Intuitively, we would expect that to result in an
 impulse that acts upon both disc 1 and disc 2, meaning that contacts $a$ and
 $b$ should have an impulse. However, we would not expect contact $c$ to have an
-impulse, as discs 1 and to would be pushed away from each other.
+impulse, as discs 1 and 2 would be pushed away from each other.
 
 \begin{figure}
   \centering
   \includegraphics{figures/pyr2simple.png}
   \caption{A simple 2 layered pyramid.}
-  \label{pyr2simple}
+  \label{fig:pyr2simple}
   % TODO: More figures? One with a downward arrow and the resulting impulses?
 \end{figure}
 
 Naturally, the more layers we add to our pyramids, the more complex these
-interactions become, since we have to more contacts into account. For example,
+interactions become, as we have more contacts to take into account. For example,
 in figure \ref{fig:pyr4-0}, to compute the impulse of the contact between discs
 5 and 8, we have to take into accounts all the forces that act upon those two
 discs. In particular, to compute the contact impulse between disc 5 and 8 we
@@ -87,7 +87,7 @@ contact between disc 5 and 8, in order to actually know what the contribution
 is.
 
 As can easily be imagined for this particular problem, the more layers we add,
-the more contacts there are~\footnote{In fact, for a height $n$, we have
+the more contacts there are\footnote{In fact, for a height $n$, we have
   exactly $\frac{3n}{2}(n-1)$ contacts: Each layer introduces $2n-2$ contacts
   between the new layer and the old, in addition to the $n-1$ contacts in the
   new layer. We can then prove the above by induction.}, and for each contact,
@@ -107,7 +107,7 @@ architecture of GPUs.
 \section{Goals}
 
 We wish to calculate the contact impulses between discs in a 2-dimensional
-system using Accelerate, a Haskell embedded language for expressing parallel
+system using Accelerate, a Haskell embedded DSL for expressing parallel
 computations suitable for execution on a GPU. Since transferring data to and
 from the GPU can incur significant overhead, and GPU programming in general
 imposes constraints on how computations can be done, we also wish to run
@@ -146,7 +146,7 @@ relative velocity $v_\alpha$ is expressed from $V_{cd}$ and $V_{an}$ as
     V_{cd} \\
     V_{an}
   \end{pmatrix}
-\end{equation},
+\end{equation}
 where $H_\alpha^{cd}$ and $H_\alpha^{an}$ are rotational matrices for the angle
 between the antagonist and candidate.
 
@@ -177,11 +177,9 @@ Where we call $-v_i^{-} - H_i^T M_i^{-1} R^{ext}$ our right-hand side (RHS).
 Additionally, for a contact $\alpha$, we have the following relationship between
 its impulse $r_\alpha$ and the relative velocity of the bodies in contact
 $v_\alpha$:
-
 \begin{equation}
   v_\alpha \geq 0, \quad r_\alpha \geq 0, \quad r_\alpha \cdot v_\alpha = 0
 \end{equation}
-
 Meaning that if two bodies are in contact, they are either moving away from
 each other, relative to the contact normal, or they are pushing against each
 other~\footnote{Additionally, there is the possibility that there is neither
