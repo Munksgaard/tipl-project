@@ -46,16 +46,18 @@ jacobi n ds ext' =
       waas = map waa cs
       ext = zipWith calcExt ext' cs
 
---iter :: Int -> [Vector Double] -> [Vector Double]
-iter :: (Eq a, Num a) => a -> [Vector Double] -> [Contact] -> [Vector Double] -> [[Int]] -> [Matrix Double] -> [Vector Double]
+iter :: (Eq a, Num a) => a -> [Vector Double] -> [Contact]
+        -> [Vector Double] -> [[Int]] -> [Matrix Double]
+        -> [Vector Double]
 iter 0 rs _ _ _ _ = rs
 iter k rs cs ext adjs waas = iter (k-1) r_new cs ext adjs waas
     where
       rhss' = zipWith (sumWab cs rs) cs adjs
       rhss = zipWith (+) ext rhss'
       r_new' = zipWith solver rhss waas
-      r_new = zipWith3 (\new old relax -> scale relax new + scale (1-relax) old) r_new' rs
-              $ map ((1/) . fromIntegral . length) adjs
+      r_new = zipWith3 relaxer r_new' rs
+                $ map ((1/) . fromIntegral . length) adjs
+      relaxer new old relax = scale relax new + scale (1-relax) old
 
 gauss :: Int -> [Disc] -> [Vector Double] -> [Vector Double]
 gauss n ds ext' =
