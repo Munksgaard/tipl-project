@@ -43,7 +43,7 @@ contacts (x:xs) = List.map (\d -> (x, d))
 inWaas :: [Contact] -> Array DIM2 Double
 inWaas cs = A.fromList inWaasSh rawInWaas
   where
-    rawInWaas = List.concat $ List.map (M.toList . M.takeDiag . inWaa) cs
+    rawInWaas = concatMap (M.toList . M.takeDiag . inWaa) cs
     inWaasSh  = Z :.n :.2
     n         = length cs
 
@@ -87,7 +87,7 @@ flattenMatrix = M.toList . M.flatten
 
 -- Flatten a list of matrices into row major order and append them in row major order
 flattenMatrices :: [Matrix Double] -> [Double]
-flattenMatrices = List.concat . (List.map flattenMatrix)
+flattenMatrices = List.concatMap flattenMatrix
 
 maybeWabsToWab :: [Maybe (Matrix Double)] -> (Double, [Matrix Double])
 maybeWabsToWab mwabs = (1.0 / w'', wabs')
@@ -96,7 +96,7 @@ maybeWabsToWab mwabs = (1.0 / w'', wabs')
     (w', wabs') = List.unzip $ List.map maybeWabToWab mwabs
 
 maybeWabToWab :: Maybe (Matrix Double) -> (Int, Matrix Double)
-maybeWabToWab Nothing     = (0, buildMatrix 2 2 (\_ -> 0.0))
+maybeWabToWab Nothing     = (0, buildMatrix 2 2 (const 0.0))
 maybeWabToWab (Just wab') = (1, wab')
 
 maybeWab :: Contact -> Contact -> Maybe (Matrix Double)

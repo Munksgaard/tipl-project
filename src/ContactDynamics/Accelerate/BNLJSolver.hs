@@ -26,7 +26,7 @@ d4 = constant 4.0 :: Exp Double
 
 fromList' :: [Double] -> [M.Vector Double] -> [M.Vector Double]
 fromList' [] result = L.reverse result
-fromList' raw rs = fromList' raw' ((M.fromList r):rs)
+fromList' raw rs = fromList' raw' (M.fromList r:rs)
   where
     (r, raw') = L.splitAt 2 raw
 
@@ -53,7 +53,7 @@ iter :: Int ->
         Acc (VectorList Double) ->
         Acc (VectorList Double)
 iter 0 _ _ rs = rs
-iter n w solver rs = iter (n-1) w solver (rs'')
+iter n w solver rs = iter (n-1) w solver rs''
   where
     rs'' = A.zipWith (+)
            (A.zipWith (*) w rs')
@@ -66,7 +66,7 @@ iter n w solver rs = iter (n-1) w solver (rs'')
 -- Acc (Wxxss)             = The Wab delassus operators for ALL RHS, a NxNx2x2 matrix where N is the number of contacts
 -- Acc (VectorList Double) = The previously calculated impulses for each contact, a Nx2 vector-matrix
 -- Acc (VectorList Double) = The right hand sides for all the contacts, a Nx2 vector-matrix
-calcRHS :: Exp Int -> Acc (VectorList Double) -> Acc (Wxxss) -> Acc (VectorList Double) -> Acc (VectorList Double)
+calcRHS :: Exp Int -> Acc (VectorList Double) -> Acc Wxxss -> Acc (VectorList Double) -> Acc (VectorList Double)
 calcRHS n extF wabss rs = extF `vssub` (wabss `wXr'` rs)
   where
     wXr'  = wXr n
@@ -91,7 +91,7 @@ solveRHS inWaas rhss = A.zipWith (*) condM $ A.zipWith (*) inWaas rhss
 --         ie. internally it goes first contact all wabs, second contact all wabs, etc. with all the dimensions
 -- arg  3: A list of the previous impulses for each contact
 -- result: a list of the matrix-vector product sums of wabs and impulses for each contact
-wXr :: Exp(Int) -> Acc(Wxxss) -> Acc(VectorList Double) -> Acc(VectorList Double)
+wXr :: Exp Int -> Acc Wxxss -> Acc(VectorList Double) -> Acc(VectorList Double)
 wXr n wabss' rs' = rowRowSums
   where
     rowRowSums = permute (+) zeros rowFold products
@@ -108,4 +108,4 @@ wXr n wabss' rs' = rowRowSums
 
 ---- Calculate vector-matrix addition
 vssub :: (Elt e, IsNum e) => Acc (VectorList e) -> Acc (VectorList e) -> Acc (VectorList e)
-vssub a b = A.zipWith (-) a b
+vssub = A.zipWith (-)
