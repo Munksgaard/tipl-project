@@ -57,15 +57,20 @@ iter k rs cs ext adjs waas = iter (k-1) r_new cs ext adjs waas
       r_new = zipWith3 (\new old relax -> scale relax new + scale (1-relax) old) r_new' rs
               $ map ((1/) . fromIntegral . length) adjs
 
-gauss :: [Disc] -> [Vector Double] -> [Vector Double] -> [Vector Double]
-gauss ds ext' rs =
-    iter' (length cs - 1) rs cs ext adjs waas
+gauss :: Int -> [Disc] -> [Vector Double] -> [Vector Double]
+gauss n ds ext' =
+  gauss' n r_init
     where
       cs = contacts ds
+      ncs = length cs - 1
       adjs = zipWith (`adjContacts` cs) cs (iterate (+ 1) 0)
-      -- r_init = replicate (length cs) $ fromList [0, 0]
       waas = map waa cs
+      r_init = replicate (length cs) $ fromList [0, 0]
       ext = zipWith calcExt ext' cs
+      gauss' 0 rs = rs
+      gauss' n rs = gauss' (n-1) $
+                    iter' ncs rs cs ext adjs waas
+
 
 iter' (-1) rs _ _ _ _ = rs
 iter' i rs cs ext adjs waas  =
