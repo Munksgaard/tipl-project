@@ -242,6 +242,19 @@ sumWab cs rs c adjs =
           wabs = map (wab c) $ pick cs adjs
 \end{verbatim}
 
+Finally, we need the function \verb+solver+, to actually compute the new
+impulse for a contact given the right hand side.
+\begin{verbatim}
+solver :: (Ord a, Field a) => Vector a -> Matrix a -> Vector a
+solver rhs waa =
+    if (rhs @> 0) > 0 then
+        inv waa `mXv` rhs
+    else
+        fromList [0, 0]
+\end{verbatim}
+
+All in all, these functions allow us to iteratively estimate the contact
+impulses for a set of discs.
 \section{Parallel implementation in Accelerate}
 
 \section{Results}
