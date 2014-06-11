@@ -177,7 +177,7 @@ Where we call $-v_i^{-} - H_i^T M_i^{-1} R^{ext}$ our right-hand side (RHS).
 Additionally, for a contact $\alpha$, we have the following relationship between
 its impulse $r_\alpha$ and the relative velocity of the bodies in contact
 $v_\alpha$:
-\begin{equation}
+\begin{equation}\label{impulseXvectorConstraint}
   v_\alpha \geq 0, \quad r_\alpha \geq 0, \quad r_\alpha \cdot v_\alpha = 0
 \end{equation}
 Meaning that if two bodies are in contact, they are either moving away from
@@ -204,9 +204,9 @@ libraries for linear algebra. The entire code can be seen in appendix
 \ref{app:seq}.
 
 For each iteration of our Jacobi solver, we have to find the right-hand side of
-\begin{equation}
+\begin{equation} \label{lhs=rhs}
   W_{\alpha\alpha} r_\alpha^{k+1} - v_\alpha^{k+1}= - H_i^T M_i^{-1} R_i^{ext}
-  - \displaystyle\sum\limits_{\beta \neq \alpha} W_{\alpha\beta} r_\beta^k
+  - \sum\limits_{\beta \neq \alpha} W_{\alpha\beta} r_\beta^k
 \end{equation}
 and solve the equation with regards to the constraints given above. To do this,
 we use the function \verb+iter+, which takes a list of estimated impulses, a
@@ -313,7 +313,6 @@ nature of the Gauss-Seidel method. However, it is very possible that some form
 of relaxation could help alleviate that problem.
 
 \section{Parallel implementation in Accelerate}
-
 Porting code from a conventional single-CPU architecture to the massively
 parallel SIMD architecture of GPUs, is, in general, not trivial. The SIMD
 architecture imposes many constraints on how effectively certain computations
@@ -340,6 +339,181 @@ the GPU is rather limited. Most importantly, we can only use flat
 data-parallelism involving only regular, multi-dimensional arrays; Accelerate
 is a stratified language, which distinguishes between collective and scalar
 computations.
+
+\subsection{Identifying parallel structure in sequential code}
+Looking at the sequential implementation
+of the Jacobi solver
+we can immediately see avenues for gainful parallelization.
+Calculating and solving the impulses
+for each iteration is independent between each contact,
+as the only dynamic data is the impulses,
+for which we only look at the previous iteration's results.
+So logically the iterations have to be sequential,
+while the calculations of the next impulses in an iteration
+can be done in parallel.
+
+This is in contrast to the sequential Gauss-Seidel implementation
+where solving the impulse for a contact depends
+on the results from solving the previous contacts impulses
+in the same iteration.
+The naive Gauss-Seidel implementation,
+while gainful in the sequential case,
+enforces a sequential structure on the execution
+and is thus hard to parallelize\footnote{
+  Although maybe not impossible. A possibility not explored by us
+  would be to graph the relationships between the contacts
+  and cut the graph such that we parallelize the calculations
+  of contacts which do not depend on each other.
+  Thus solving a given cut would be parallel,
+  but solving all the cuts would still be sequential.
+  If the graph is sparse, the number of cuts could be very low.}.
+
+Another place we can parallelize is the calculation
+of the matrix-vector product sums in \eqref{lhs=rhs},
+that is \[\sum\limits_{\beta \neq \alpha} W_{\alpha\beta} r_\beta^k\]
+as each component of the sum is independent from the next,
+and the summing itself is trivially commutative,
+so nothing stops us from calculating each component in parallel
+and then folding the results in parallel.
+
+And lastly solving each right hand side of \eqref{lhs=rhs}
+to get the next impulses can also trivially be done in parallel.
+
+\subsection{Solving the right hand sides}
+In explaining our parallel implementation we will start
+by going backwards, first explaining the solving,
+then the calculating of the right hand side in general,
+and finally calculating the matrix-vector product sums specifically.
+
+The code for the Accelerate solver is as follows
+\begin{verbatim}
+solveRHS :: Acc (VectorList Double) -> 
+            Acc (VectorList Double) -> 
+            Acc (VectorList Double)
+solveRHS inWaas rhss = A.zipWith (*) condM 
+                     $ A.zipWith (*) inWaas rhss
+  where
+    condM   = A.replicate repSh 
+            $ A.map (A.fromIntegral . boolToInt . (>*0)) rhs1s
+    rhs1s   = slice rhss sliceSh
+    sliceSh = lift $ Z :.All :.i0
+    repSh   = lift $ Z :.All :.i2
+\end{verbatim}
+here \texttt{rhss} is the right hand side for each contact,
+and \texttt{inWaas} is the inverse of $W_{\alpha\alpha}$ for each contact.
+
+We have to solve the problem of \eqref{impulseXvectorConstraint}:
+we wish to see whether the velocity is positive,
+which it is iff the right hand side is negative.
+We only test the first component of the rhs
+as we do not handle friction in the model and is thus only interested
+in the component out of the contact normal ie. the first component.
+
+Instead of testing as we solve,
+which would lead to SIMD divergence due to how the GPU handles branching,
+we solve for all rhss in parallel and then filter out the results
+using a conditional matrix.
+
+\subsection{Calculating the right hand sides}
+The code for the Accelerate rhs calculator is as follows
+\begin{verbatim}
+           -- number of contacts, used for replication in wXr
+calcRHS :: Exp Int                 ->
+           -- external forces (negated form)
+           Acc (VectorList Double) ->
+           -- NxNx2x2 matrix holding Wabs for each contact
+           Acc Wxxss               ->
+           -- previous impulses for each contact
+           Acc (VectorList Double) ->
+           -- right hand sides
+           Acc (VectorList Double) ->
+calcRHS n extF wabss rs = extF `vssub` (wabss `wXr'` rs)
+  where
+    wXr'  = wXr n
+\end{verbatim}
+
+The array \texttt{wabss} bears some explaining.
+As we wish to calculate the rhs for each contact at the same time,
+and also wish to parallelize calculating the matrix-vector product sums,
+we run into nested data parallelism in the naive implementation,
+which Accelerate does not support.
+
+So to summarize: we have two loops, one nested in the other, that we wish to parallelize
+\begin{enumerate}
+\item Calculating rhs for each contact
+\item Calculating the matrix vector product for each $W_{\alpha\beta} \cdot r_{\beta}$ and summing them
+\end{enumerate}
+
+To flatten the nested data parallelism we resort to work in higher dimensions,
+with the extra dimensions conceptually encoding the two loops.
+Thus \texttt{wabss} is an $n \times n \times 2 \times 2$ array,
+with $n$ being the number of contacts.
+The two inner ($2 \times 2$) dimensions can thus be viewed
+as the elements of a $n \times n$ array,
+where the rows are the contacts $\alpha$,
+the columns are the adjacent contacts $\beta$,
+and the elements are the individual $W_{\alpha\beta}$.
+It should be noted that in the case where two contacts are not adjacent
+the $W_{\alpha\beta}$ is the null matrix.
+
+With this explained the semantics of the code follows \eqref{lhs=rhs} closely.
+
+\subsection{Calculating the matrix-vector product sums}
+In the function for \texttt{calcRHS} we did the matrix-vector product sums
+for all the contacts at the same time using the \texttt{wXr} function.
+The code for it is as follows
+\begin{verbatim}
+wXr :: Exp Int ->
+       Acc Wxxss ->
+       Acc(VectorList Double) ->
+       Acc(VectorList Double)
+wXr n wabss rs' = rowRowSums
+  where
+    rowRowSums = permute (+) zeros rowFold products
+    products   = A.zipWith (*) wabss rs
+    zeros      = fill nx2Sh d0
+    rs         = A.replicate repSh2 $ A.replicate repSh1 rs'
+    nx2Sh      = lift $ Z :.n   :.i2
+    repSh2     = lift $ Z :.n   :.All :.All :.All
+    repSh1     = lift $ Z :.All :.i2  :.All
+    rowFold ix = index2
+                 (indexHead $ indexTail $ indexTail $ indexTail ix)
+                 (indexHead $ indexTail ix)
+\end{verbatim}
+
+\texttt{wabss} is on the form explained in the previous section.
+What we want to do is for each row and for each $W_{\alpha\beta}$
+do matrix-vector multiplication with their respective $r_\beta$
+and then fold.
+
+Trivially the matrix-vector multiplication is of the form
+\[
+W_{\alpha\beta} \cdot r_\beta = 
+\begin{pmatrix}
+W_{1,1} \cdot r_{1} + W_{1,2} \cdot r_{2} \\
+W_{2,1} \cdot r_{1} + W_{1,2} \cdot r_{2}
+\end{pmatrix}
+\]
+for each element.
+To do this in parallel for all $W_{\alpha\beta}$s
+we first replicate the components of \texttt{rs'}
+into a new dimension so that we get a new $n \times 2 \times 2$
+array that can be seen as a $n$ length vector with $2 \times 2$
+arrays as elements of the form
+\[
+\begin{bmatrix}
+r_{1} & r_{2} \\
+r_{1} & r_{2}
+\end{bmatrix}
+\]
+
+and we then replicate again, across a new row dimension,
+$n$ times such that we end up with an $n \times n \times 2 \times 2$
+where we can do elementwise multiplication with \texttt{wabss} in parallel.
+
+After this preprocessing step of the elements we then do the remaining addition and summation
+via a permutation into an $n \times 2$ array, yielding the final matrix-vector product sums
+for each contact.
 
 \section{Results}
 
