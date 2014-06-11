@@ -530,9 +530,14 @@ and we then replicate again, across a new row dimension,
 $n$ times such that we end up with an $n \times n \times 2 \times 2$
 where we can do elementwise multiplication with \texttt{wabss} in parallel.
 
-After this multiplication step of the elements we then do the remaining addition and summation
-via a permutation into an $n \times 2$ array, yielding the final matrix-vector product sums
-for each contact.
+Then, we just need to add the correct terms together. To do so, we use the
+function \verb+permute+. \verb+permute+ takes a combination function, in this
+case \verb-+-, an array of default values, a permutation, and an array to be
+permuted, and computes the permuted array. The permutation function takes an
+indexing expression, and computes a new index. By realizing that the values
+that have to be added together, are all the values where the first and third
+array index is the same, we can simply transform the $n \times n \times 2
+\times 2$ array into an $n \times 2$ array using \verb+permute+.
 
 \subsection{Relaxation}
 Finally we do the relaxation step outside in the iterator itself,
