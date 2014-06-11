@@ -12,14 +12,25 @@ epsilon :: Double
 epsilon = 0.0001
 
 ---- Calculate the contact space matrix inverses and the adjacent contacts
--- [Disc] = 
-liftData :: [Disc] -> (Int, Exp Int, Acc (Array DIM1 Double), Acc (Array DIM2 Double), Acc(Array DIM4 Double))
-liftData ds = (n, lift n, use w, use inWaas', use wabss')
+-- [Disc] =
+liftData :: [Disc] -> [M.Vector Double] -> (Int, Exp Int, Acc (Array DIM1 Double), Acc (Array DIM2 Double), Acc(Array DIM4 Double), Acc(Array DIM2 Double))
+liftData ds extF = (n, lift n, use w, use inWaas', use wabss', use extF')
   where
     cs          = contacts ds
     n           = length cs
     inWaas'     = inWaas cs
     (w, wabss') = wabss cs
+    extF'       = liftExtF n extF cs
+
+-- liftExtF :: Int -> [M.Vector Double] -> [Contact] -> Array DIM2 Double
+liftExtF n extF cs = -- H^T M^-1 F
+  A.fromList shp $ List.concatMap M.toList $ List.zipWith doExt extF cs
+  where
+    shp = Z :. n :. 2
+    doExt ext c@(cd,an) = scale (-1) $ trans h `multiply` inv m `mXv` ext
+      where
+        h = contactMatrix c
+        m = diagBlock [massM cd, massM an]
 
 contacts :: [Disc] -> [Contact]
 contacts [] = []

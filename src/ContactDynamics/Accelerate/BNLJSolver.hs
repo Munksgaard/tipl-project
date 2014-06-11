@@ -41,17 +41,11 @@ bnljSolver maxIter ds extF = flip fromList' [] $ A.toList $ Backend.run (iter' s
     step                  = solveRHS' . calcRHS'
     solveRHS'             = solveRHS invs
     calcRHS'              = calcRHS n extF' wss
-    extF'                 = (A.map (\x -> -x)
-                             $ use
-                             $ A.fromList fSh
-                             $ L.concat
-                             $ L.map M.toList extF)
     rs_init               = fill rSh d0
     rSh                   = lift (Z :.n :.i2)
-    fSh                   = Z :.n' :.2
     w'                    = A.replicate repSh w
     repSh                 = lift $ Z :.All :.i2
-    (n', n, w, invs, wss) = liftData ds
+    (n', n, w, invs, wss, extF') = liftData ds extF
 
 iter :: Int ->
         Acc (VectorList Double) ->
@@ -87,7 +81,7 @@ solveRHS inWaas rhss = A.zipWith (*) condM $ A.zipWith (*) inWaas rhss
   where
     condM   = A.replicate repSh $ A.map (A.fromIntegral . boolToInt . (>*0)) rhs1s
     rhs1s   = slice rhss sliceSh
-    sliceSh = lift $ Z :.All :.i1
+    sliceSh = lift $ Z :.All :.i0
     repSh   = lift $ Z :.All :.i2
 
 ---- Calculate matrix-vector product sums of wabs and impulses for each contact AT THE SAME TIME
@@ -98,17 +92,19 @@ solveRHS inWaas rhss = A.zipWith (*) condM $ A.zipWith (*) inWaas rhss
 -- arg  3: A list of the previous impulses for each contact
 -- result: a list of the matrix-vector product sums of wabs and impulses for each contact
 wXr :: Exp(Int) -> Acc(Wxxss) -> Acc(VectorList Double) -> Acc(VectorList Double)
-wXr n wabss' rs' = columnSums
+wXr n wabss' rs' = rowRowSums
   where
-    columnSums = fold (+) d0 $ reshape nx2x2 rowSums
-    rowSums    = fold (+) d0 $ reshape i4tnxnSh products
-    products   = transpose $ reshape ntnxi4Sh $ A.zipWith (*) wabs rs
+    rowRowSums = permute (+) zeros rowFold products
+    products   = reshape nxnx2x2Sh $ A.zipWith (*) wabs rs
+    zeros      = fill nx2Sh d0
     wabs       = flatten wabss'
-    rs         = flatten $ A.replicate repSh rs'
-    repSh      = lift $ Z :.n      :.All    :.i2 :.All
-    ntnxi4Sh   = lift $ Z :.(n*n)  :.i4
-    i4tnxnSh   = lift $ Z :.(i4*n) :.n
-    nx2x2      = lift $ Z :.n      :.i2 :.i2
+    rs         = flatten $ A.replicate repSh2 $ A.replicate repSh1 rs'
+    nx2Sh      = lift $ Z :. n :. i2
+    repSh2     = lift $ Z :.n :.All :.All :.All
+    repSh1     = lift $ Z :.All :.i2 :.All
+    nxnx2x2Sh   = lift $ Z :. n :. n :. i2 :. i2
+    rowFold ix  = index2 (indexHead $ indexTail $ indexTail $ indexTail ix)
+                     (indexHead $ indexTail ix)
 
 ---- Calculate vector-matrix addition
 vssub :: (Elt e, IsNum e) => Acc (VectorList e) -> Acc (VectorList e) -> Acc (VectorList e)
