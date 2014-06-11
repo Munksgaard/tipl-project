@@ -89,7 +89,7 @@ impulse, as discs 1 and 2 would be pushed away from each other.
 
 Naturally, the more layers we add to our pyramids, the more complex these
 interactions become, as we have more contacts to take into account. For example,
-in figure \ref{fig:pyr4-0}, to compute the impulse of the contact between discs
+in figure \ref{fig:pyr4-10}, to compute the impulse of the contact between discs
 5 and 8, we have to take into accounts all the forces that act upon those two
 discs. In particular, to compute the contact impulse between disc 5 and 8 we
 have to take into account the contact impulses of all the disc-pairs $(2;5)$,
@@ -97,6 +97,13 @@ $(4;5)$, $(5;9)$, $(4;8)$, $(7;8)$, and $(8;9)$. Furthermore, we have to
 translate the impulses in these adjacent contacts to the contact-space of the
 contact between disc 5 and 8, in order to actually know what the contribution
 is.
+
+\begin{figure}
+  \centering
+  \includegraphics{figures/pyr4-10.png}
+  \caption{A simple 4 layered pyramid, with impulses (10 iterations of Jacobi, see sections \ref{seqjacobi}, \ref{parjacobi})}
+  \label{fig:pyr4-10}
+\end{figure}
 
 As can easily be imagined for this particular problem, the more layers we add,
 the more contacts there are\footnote{In fact, for a height $n$, we have
@@ -109,6 +116,13 @@ contact impulses depend on adjacent contact impulses, we cannot easily
 calculate an analytical solution. Instead, we have to compute the solution
 numerically, by using intermediate estimates to iteratively produces better and
 better estimates for the contact impulses until we reach convergence.
+
+\begin{figure}
+  \centering
+  \includegraphics{figures/upto10.png}
+  \caption{Visualization of maximum adjacent contacts possible}
+  \label{fig:upto10}
+\end{figure}
 
 Because of the massive size of these problems, and the iterative nature of the
 solver, computing the contact impulses in large pyramids is expensive on
@@ -201,7 +215,7 @@ find RHS, we can, by exclusion, find the impulse in a contact $\alpha$. For
 finding the right-hand side, we use a series of continually improved estimates,
 and this is where our Jacobi solver comes in.
 
-\section{Initial Haskell implementation of the Jacobi solver}
+\section{Initial Haskell implementation of the Jacobi solver\label{seqjacobi}}
 
 The Jacobi method is an algorithm for determining the solution for a linear
 system of equations. By regarding the contact impulses as our linear equations
@@ -327,7 +341,7 @@ between. This is to be expected, given the nature of the Gauss-Seidel
 method. However, it is very possible that some form of relaxation could help
 alleviate that problem.
 
-\section{Parallel implementation in Accelerate}
+\section{Parallel implementation in Accelerate\label{parjacobi}}
 Porting code from a conventional single-CPU architecture to the massively
 parallel SIMD architecture of GPUs, is, in general, not trivial. The SIMD
 architecture imposes many constraints on how effectively certain computations
@@ -359,7 +373,7 @@ Accelerate borrows a lot of concepts for expressing arrays, array shapes and
 operations on those, from Repa\cite{repa}, another Haskell library for expressing parallel
 operations, that doesn't use GPUS.
 
-\subsection{Identifying parallel structure in sequential code}
+\subsection{Identifying parallel structure in sequential code\label{identpara}}
 Looking at the sequential implementation
 of the Jacobi solver
 we can immediately see avenues for gainful parallelization.
@@ -406,13 +420,13 @@ and finally calculating the matrix-vector product sums specifically.
 
 The code for the Accelerate solver is as follows
 \begin{verbatim}
-solveRHS :: Acc (VectorList Double) -> 
-            Acc (VectorList Double) -> 
+solveRHS :: Acc (VectorList Double) ->
+            Acc (VectorList Double) ->
             Acc (VectorList Double)
-solveRHS inWaas rhss = A.zipWith (*) condM 
+solveRHS inWaas rhss = A.zipWith (*) condM
                      $ A.zipWith (*) inWaas rhss
   where
-    condM   = A.replicate repSh 
+    condM   = A.replicate repSh
             $ A.map (A.fromIntegral . boolToInt . (>*0)) rhs1s
     rhs1s   = slice rhss sliceSh
     sliceSh = lift $ Z :.All :.i0
@@ -424,7 +438,7 @@ and \texttt{inWaas} is the inverse of $W_{\alpha\alpha}$ for each contact.
 We have to solve the problem of \eqref{impulseXvectorConstraint}:
 we wish to see whether the velocity is positive,
 which it is iff the right hand side is negative.
-We only test the first component of the rhs
+We only test the first component of the RHS
 as we do not handle friction in the model and is thus only interested
 in the component out of the contact normal ie. the first component.
 
@@ -434,7 +448,7 @@ we solve for all rhss in parallel and then filter out the results
 using a conditional matrix.
 
 \subsection{Calculating the right hand sides}
-The code for the Accelerate rhs calculator is as follows
+The code for the Accelerate RHS calculator is as follows
 \begin{verbatim}
            -- number of contacts, used for replication in wXr
 calcRHS :: Exp Int                 ->
@@ -452,14 +466,14 @@ calcRHS n extF wabss rs = extF `vssub` (wabss `wXr'` rs)
 \end{verbatim}
 
 The array \texttt{wabss} bears some explaining.
-As we wish to calculate the rhs for each contact at the same time,
+As we wish to calculate the RHS for each contact at the same time,
 and also wish to parallelize calculating the matrix-vector product sums,
 we run into nested data parallelism in the naive implementation,
 which Accelerate does not support.
 
 So to summarize: we have two loops, one nested in the other, that we wish to parallelize
 \begin{enumerate}
-\item Calculating rhs for each contact
+\item Calculating RHS for each contact
 \item Calculating the matrix vector product for each $W_{\alpha\beta} \cdot r_{\beta}$ and summing them
 \end{enumerate}
 
@@ -507,7 +521,7 @@ and then fold.
 
 Trivially the matrix-vector multiplication is of the form
 \[
-W_{\alpha\beta} \cdot r_\beta = 
+W_{\alpha\beta} \cdot r_\beta =
 \begin{pmatrix}
 W_{1,1} \cdot r_{1} + W_{1,2} \cdot r_{2} \\
 W_{2,1} \cdot r_{1} + W_{1,2} \cdot r_{2}
@@ -560,7 +574,7 @@ as described in the sequential solver,
 and the solver is the Accelerate solver initialized
 with all the relevant data.
 
-\subsection{Construction and lifting of data}
+\subsection{Construction and lifting of data\label{dataconstruction}}
 When implementing the parallel solution
 we focused on the iteration step itself
 and lifted all calculations of static data
@@ -576,11 +590,9 @@ sequentially, as they do not change between the steps
 \end{itemize}
 
 The calculation of these values are included in the overhead for both
-the sequential and parallel implementations.
-The sequential solution leverages haskell laziness and functional purity
-to get the values ``on demand'' when they are needed,
-while the parallel solution is required to calculate it all
-and lift the results into the memory of the GPU.
+the sequential and parallel implementations,
+where the parallel solution calculates it all in the host memory
+before lifting the results into the device memory.
 
 Further speed increases could possibly be gained
 by also looking at parallelization of the collision detection
@@ -589,6 +601,31 @@ but we intentionally left it out as we focused on the algorithm
 for calculating the iterations.
 
 \section{Results}
+
+\section{Future Work}
+During the course of implementing our solution and writing this
+paper we left out exploring some optimizations that we feel
+might be worthwhile to do, as we focused on parallelizing
+the core iteration step of the Jacobi solver.
+
+\begin{itemize}
+\item As described in section \ref{dataconstruction} we left out
+  parallelizing the precalculation of the static data.
+  Especially the collision and adjacency detection could be worthwhile
+  to do in parallel, both as it lends itself to parallelization
+  and because it cuts down on the amount of data to send to the device.
+\item Find and implement parallel structure in the code for the Gauss-Seidel iteration.
+  Inherently this method is sequential, but as we noted in section \ref{identpara}
+  there could be methods such as graph cutting of the adjacency graph
+  that could lead to independent parts of the iteration to be calculated in parallel.
+\item Implement calculating the velocity changes for the discs based
+  on the results of the iteration, as well as look at how many iterations are needed
+  for reasonably accurate results across multiple time steps.
+\item Implement a solution in 3 dimensions, instead of only 2.
+  This should be reasonably straight-forward, as the algorithm is the same
+  but with more dimensions, but making it fast might be a challenge.
+\item Implement handling of friction and rotation of the discs.
+\end{itemize}
 
 \section{Conclusion}
 
