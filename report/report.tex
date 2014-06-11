@@ -420,7 +420,7 @@ and \texttt{inWaas} is the inverse of $W_{\alpha\alpha}$ for each contact.
 We have to solve the problem of \eqref{impulseXvectorConstraint}:
 we wish to see whether the velocity is positive,
 which it is iff the right hand side is negative.
-We only test the first component of the rhs
+We only test the first component of the RHS
 as we do not handle friction in the model and is thus only interested
 in the component out of the contact normal ie. the first component.
 
@@ -430,7 +430,7 @@ we solve for all rhss in parallel and then filter out the results
 using a conditional matrix.
 
 \subsection{Calculating the right hand sides}
-The code for the Accelerate rhs calculator is as follows
+The code for the Accelerate RHS calculator is as follows
 \begin{verbatim}
            -- number of contacts, used for replication in wXr
 calcRHS :: Exp Int                 ->
@@ -448,14 +448,14 @@ calcRHS n extF wabss rs = extF `vssub` (wabss `wXr'` rs)
 \end{verbatim}
 
 The array \texttt{wabss} bears some explaining.
-As we wish to calculate the rhs for each contact at the same time,
+As we wish to calculate the RHS for each contact at the same time,
 and also wish to parallelize calculating the matrix-vector product sums,
 we run into nested data parallelism in the naive implementation,
 which Accelerate does not support.
 
 So to summarize: we have two loops, one nested in the other, that we wish to parallelize
 \begin{enumerate}
-\item Calculating rhs for each contact
+\item Calculating RHS for each contact
 \item Calculating the matrix vector product for each $W_{\alpha\beta} \cdot r_{\beta}$ and summing them
 \end{enumerate}
 
