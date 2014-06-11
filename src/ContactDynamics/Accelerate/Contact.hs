@@ -37,11 +37,12 @@ inWaas cs = A.fromList inWaasSh rawInWaas
     n         = length cs
 
 inWaa :: Contact -> Matrix Double
-inWaa (cd, an) =
-  inv $ trans h `multiply` inv m `multiply` h
+inWaa (cd, an) | det waa == 0 = (2><2) [0,0,0,0]
+               | otherwise = inv waa
   where
+    waa = trans h `multiply` invM `multiply` h
     h = contactMatrix(cd, an)
-    m = diagBlock [massM cd, massM an]
+    invM = inv $ diagBlock [massM cd, massM an]
 
 wabss :: [Contact] -> (Array DIM1 Double, Array DIM4 Double)
 wabss cs = (ws'', wabss'')
