@@ -27,7 +27,19 @@
 \maketitle
 
 \begin{abstract}
-abstract
+Estimating contact impulses physical systems of rigid bodies is a
+computationally expensive problem, because the impulse in each contact is a
+function of all the adjacent contact impulses as well as any external
+forces. In a pyramid of 2-dimensional discs, the total number of contacts is
+$\frac{3h}{2} (h-1)$, and for each of these contacts we need to take up to 10
+adjacent contacts into account.
+
+We have implemented a solver for this problem that utilizes the massively
+parallel architecture of GPUs in order to obtain significant performance gains
+compared to a regular single-processor implementation. It turns out to be very
+efficient for large pyramids with many iterations, while still leaving some
+room for improvements.
+
 \end{abstract}
 
 \section{Introduction}
