@@ -29,15 +29,20 @@ fromList' raw rs = fromList' raw' (M.fromList r:rs)
 bnljSolver :: Int -> [Disc] -> [M.Vector Double] -> [M.Vector Double]
 bnljSolver maxIter ds extF = flip fromList' [] $ A.toList $ Backend.run (iter' step rs_init)
   where
-    iter'                 = iter maxIter w'
-    step                  = solveRHS' . calcRHS'
-    solveRHS'             = solveRHS invs
-    calcRHS'              = calcRHS n extF' wss
-    rs_init               = fill rSh d0
-    rSh                   = lift (Z :.n :.i2)
-    w'                    = A.replicate repSh w
-    repSh                 = lift $ Z :.All :.i2
-    (n', n, w, invs, wss, extF') = liftData ds extF
+    iter'     = iter maxIter w'
+    step      = solveRHS' . calcRHS'
+    solveRHS' = solveRHS invs
+    calcRHS'  = calcRHS n extF' wss
+    rs_init   = fill rSh d0
+    rSh       = lift (Z :.n :.i2)
+    w'        = A.replicate repSh w
+    repSh     = lift $ Z :.All :.i2
+    (n',
+     n,
+     w,
+     invs,
+     wss,
+     extF')   = liftData ds extF
 
 iter :: Int ->
         Acc (VectorList Double) ->
@@ -91,13 +96,14 @@ wXr n wabss' rs' = rowRowSums
     zeros      = fill nx2Sh d0
     wabs       = flatten wabss'
     rs         = flatten $ A.replicate repSh2 $ A.replicate repSh1 rs'
-    nx2Sh      = lift $ Z :. n :. i2
-    repSh2     = lift $ Z :.n :.All :.All :.All
-    repSh1     = lift $ Z :.All :.i2 :.All
-    nxnx2x2Sh   = lift $ Z :. n :. n :. i2 :. i2
-    rowFold ix  = index2 (indexHead $ indexTail $ indexTail $ indexTail ix)
-                     (indexHead $ indexTail ix)
+    nx2Sh      = lift $ Z :.n   :.i2
+    repSh2     = lift $ Z :.n   :.All :.All :.All
+    repSh1     = lift $ Z :.All :.i2  :.All
+    nxnx2x2Sh  = lift $ Z :.n   :.n   :.i2  :.i2
+    rowFold ix = index2
+                 (indexHead $ indexTail $ indexTail $ indexTail ix)
+                 (indexHead $ indexTail ix)
 
----- Calculate vector-matrix addition
+---- Calculate vector-matrix subtraction
 vssub :: (Elt e, IsNum e) => Acc (VectorList e) -> Acc (VectorList e) -> Acc (VectorList e)
 vssub = A.zipWith (-)
