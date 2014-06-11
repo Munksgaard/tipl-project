@@ -340,7 +340,7 @@ data-parallelism involving only regular, multi-dimensional arrays; Accelerate
 is a stratified language, which distinguishes between collective and scalar
 computations.
 
-\subsection{Identifying parallel structure in sequential code}
+\subsection{Identifying parallel structure in sequential code\label{identpara}}
 Looking at the sequential implementation
 of the Jacobi solver
 we can immediately see avenues for gainful parallelization.
@@ -536,7 +536,7 @@ as described in the sequential solver,
 and the solver is the Accelerate solver initialized
 with all the relevant data.
 
-\subsection{Construction and lifting of data}
+\subsection{Construction and lifting of data\label{dataconstruction}}
 When implementing the parallel solution
 we focused on the iteration step itself
 and lifted all calculations of static data
@@ -552,11 +552,9 @@ sequentially, as they do not change between the steps
 \end{itemize}
 
 The calculation of these values are included in the overhead for both
-the sequential and parallel implementations.
-The sequential solution leverages haskell laziness and functional purity
-to get the values ``on demand'' when they are needed,
-while the parallel solution is required to calculate it all
-and lift the results into the memory of the GPU.
+the sequential and parallel implementations,
+where the parallel solution calculates it all in the host memory
+before lifting the results into the device memory.
 
 Further speed increases could possibly be gained
 by also looking at parallelization of the collision detection
@@ -565,6 +563,31 @@ but we intentionally left it out as we focused on the algorithm
 for calculating the iterations.
 
 \section{Results}
+
+\section{Future Work}
+During the course of implementing our solution and writing this
+paper we left out exploring some optimizations that we feel
+might be worthwhile to do, as we focused on parallelizing
+the core iteration step of the Jacobi solver.
+
+\begin{itemize}
+\item As described in section \ref{dataconstruction} we left out
+  parallelizing the precalculation of the static data.
+  Especially the collision and adjacency detection could be worthwhile
+  to do in parallel, both as it lends itself to parallelization
+  and because it cuts down on the amount of data to send to the device.
+\item Find and implement parallel structure in the code for the Gauss-Seidel iteration.
+  Inherently this method is sequential, but as we noted in section \ref{identpara}
+  there could be methods such as graph cutting of the adjacency graph
+  that could lead to independent parts of the iteration to be calculated in parallel.
+\item Implement calculating the velocity changes for the discs based
+  on the results of the iteration, as well as look at how many iterations are needed
+  for reasonably accurate results across multiple time steps.
+\item Implement a solution in 3 dimensions, instead of only 2.
+  This should be reasonably straight-forward, as the algorithm is the same
+  but with more dimensions, but making it fast might be a challenge.
+\item Implement handling of friction and rotation of the discs.
+\end{itemize}
 
 \section{Conclusion}
 
