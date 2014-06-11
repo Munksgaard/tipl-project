@@ -511,9 +511,58 @@ and we then replicate again, across a new row dimension,
 $n$ times such that we end up with an $n \times n \times 2 \times 2$
 where we can do elementwise multiplication with \texttt{wabss} in parallel.
 
-After this preprocessing step of the elements we then do the remaining addition and summation
+After this multiplication step of the elements we then do the remaining addition and summation
 via a permutation into an $n \times 2$ array, yielding the final matrix-vector product sums
 for each contact.
+
+\subsection{Relaxation}
+Finally we do the relaxation step outside in the iterator itself,
+\begin{verbatim}
+iter :: Int ->
+        Acc (VectorList Double) ->
+        (Acc (VectorList Double) -> Acc (VectorList Double)) ->
+        Acc (VectorList Double) ->
+        Acc (VectorList Double)
+iter 0 _ _ rs = rs
+iter n w solver rs = iter (n-1) w solver rs''
+  where
+    rs'' = A.zipWith (+)
+           (A.zipWith (*) w rs')
+           (A.zipWith(\x y -> (1-x) * y) w rs)
+    rs'  = solver rs
+\end{verbatim}
+where $w$ is the relaxation variables for each contact,
+as described in the sequential solver,
+and the solver is the Accelerate solver initialized
+with all the relevant data.
+
+\subsection{Construction and lifting of data}
+When implementing the parallel solution
+we focused on the iteration step itself
+and lifted all calculations of static data
+outside of the solver.
+This include precalculating the following values,
+sequentially, as they do not change between the steps
+
+\begin{itemize}
+\item All contacts were found
+\item $W_{\alpha\alpha}$ was calculated and the inverses found
+\item Adjacency was calculated, including all the $W_{\alpha\beta}$ matrices
+\item Relaxation parameter $w$ was calculated
+\end{itemize}
+
+The calculation of these values are included in the overhead for both
+the sequential and parallel implementations.
+The sequential solution leverages haskell laziness and functional purity
+to get the values ``on demand'' when they are needed,
+while the parallel solution is required to calculate it all
+and lift the results into the memory of the GPU.
+
+Further speed increases could possibly be gained
+by also looking at parallelization of the collision detection
+and the calculation of all these static values,
+but we intentionally left it out as we focused on the algorithm
+for calculating the iterations.
 
 \section{Results}
 
