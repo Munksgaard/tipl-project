@@ -1,4 +1,4 @@
-module BNLJSolver where
+module ContactDynamics.Accelerate.BNLJSolver where
 
 import ContactDynamics.Disc
 import ContactDynamics.Accelerate.Contact
