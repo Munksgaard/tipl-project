@@ -1,8 +1,11 @@
 module ContactDynamics.Render where
 
 import ContactDynamics.Disc
-import ContactDynamics.Sequential.Contact
+import ContactDynamics.Contact
+import ContactDynamics.Utils
+
 import ContactDynamics.Sequential.JacobiSolver
+import ContactDynamics.Accelerate.BNLJSolver
 
 import Numeric.LinearAlgebra
 import qualified Graphics.Rendering.Cairo as C
@@ -52,8 +55,9 @@ pyramidToSVG levels = discsToSVG pyramid
     where
         pyramid = genPyramid levels
 
-contactsToSVG :: Integer -> FilePath -> Int -> IO ()
-contactsToSVG levels filename iters =
+contactsToSVG :: (Int -> [Disc] -> [Vector Double] -> [Vector Double]) ->
+                 Integer -> FilePath -> Int -> IO ()
+contactsToSVG computer levels filename iters =
   C.withSVGSurface filename (fromInteger $ levels * scaler * 2)
       (fromInteger $ levels * scaler * 2)
       renderer
@@ -63,7 +67,7 @@ contactsToSVG levels filename iters =
       C.renderWith surface $ renderDiscs (fromInteger scaler) discs
       C.renderWith surface $ renderContacts (fromInteger scaler) $ zip cs rs
     cs = contacts discs
-    rs = jacobi iters discs $ replicate 2 (fromList [0,-1,0,0,0,0]) ++ replicate (length cs - 2) (fromList [0,0,0,0,0,0])
+    rs = computer iters discs $ extF $ length cs
     discs = genPyramid levels
 
 gaussSVG :: Integer -> FilePath -> [Disc] -> [Contact] -> [Vector Double] -> IO ()

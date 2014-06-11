@@ -1,15 +1,11 @@
 module ContactDynamics.Accelerate.Contact where
 
 import ContactDynamics.Disc
+import ContactDynamics.Contact
 import Data.Array.Accelerate as A
 import Data.List as List
 import Numeric.LinearAlgebra as M
 import Numeric.LinearAlgebra.Util
-
-type Contact = (Disc, Disc)
-
-epsilon :: Double
-epsilon = 0.0001
 
 ---- Calculate the contact space matrix inverses and the adjacent contacts
 -- [Disc] =
@@ -31,14 +27,6 @@ liftExtF n extF cs = -- H^T M^-1 F
       where
         h = contactMatrix c
         m = diagBlock [massM cd, massM an]
-
-contacts :: [Disc] -> [Contact]
-contacts [] = []
-contacts (x:xs) = List.map (\d -> (x, d))
-                   (List.filter (contactp x) xs)
-                   ++ contacts xs
-  where
-    contactp d1 d2 = dist d1 d2 <= (radius d1 + radius d2) + epsilon
 
 inWaas :: [Contact] -> Array DIM2 Double
 inWaas cs = A.fromList inWaasSh rawInWaas
@@ -71,9 +59,6 @@ adjTo alpha@(cd, an) beta
   | cd `isIn` beta
     || an `isIn` beta = True
   | otherwise         = False
-
-isIn :: Disc -> Contact -> Bool
-isIn d (cd, an) = d == cd || d == an
 
 wabs :: [Contact] -> Contact -> (Double, [Double])
 wabs cs alpha = (w', flattenMatrices wabs')
@@ -114,13 +99,3 @@ wab alpha@(cd1, an1) beta@(cd2, an2) =
     h_beta  = (if common == cd2 then M.takeRows else M.dropRows) 3 $
               contactMatrix beta
     m       = massM common
-
-contactMatrix :: Contact -> Matrix Double
-contactMatrix (cd, an) =
-  let phi = angle an cd
-      c   = cos phi
-      s   = sin phi
-      r1  = radius cd
-      r2  = radius an
-  in trans $ (2><6) [  c, s,   0, -c, -s,   0
-                    , -s, c, -r1,  s, -c, -r2 ]

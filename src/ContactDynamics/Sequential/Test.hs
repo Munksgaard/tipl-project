@@ -1,8 +1,11 @@
 module ContactDynamics.Sequential.Test where
 
 import ContactDynamics.Disc
-import ContactDynamics.Sequential.Contact
+import ContactDynamics.Contact
+import ContactDynamics.Utils
 import ContactDynamics.Render
+
+import ContactDynamics.Sequential.Contact
 import ContactDynamics.Sequential.JacobiSolver
 
 import Numeric.LinearAlgebra

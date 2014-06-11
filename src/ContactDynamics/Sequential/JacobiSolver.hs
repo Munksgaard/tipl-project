@@ -1,5 +1,9 @@
 module ContactDynamics.Sequential.JacobiSolver where
+
 import ContactDynamics.Disc
+import ContactDynamics.Contact
+import ContactDynamics.Utils
+
 import ContactDynamics.Sequential.Contact
 
 import Numeric.LinearAlgebra
@@ -74,10 +78,6 @@ iter' i rs cs ext adjs waas  =
                 ext !! i + rhs'
               else
                 rhs'
-
-set :: Int -> a -> [a] -> [a]
-set i x xs =
-  take (i-1) xs ++ x : drop i xs
 
 solver :: (Ord a, Field a) => Vector a -> Matrix a -> Vector a
 solver rhs waa =

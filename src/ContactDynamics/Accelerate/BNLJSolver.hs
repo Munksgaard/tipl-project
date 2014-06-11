@@ -1,5 +1,4 @@
 module ContactDynamics.Accelerate.BNLJSolver where
-
 import ContactDynamics.Disc
 import ContactDynamics.Accelerate.Contact
 import qualified Numeric.LinearAlgebra as M
@@ -13,16 +12,9 @@ type Wxxs             = Array DIM3 Double
 type Wxxss            = Array DIM4 Double
 
 i0 = constant 0 :: Exp Int
-i1 = constant 1 :: Exp Int
 i2 = constant 2 :: Exp Int
-i3 = constant 3 :: Exp Int
-i4 = constant 4 :: Exp Int
 
 d0 = constant 0.0 :: Exp Double
-d1 = constant 1.0 :: Exp Double
-d2 = constant 2.0 :: Exp Double
-d3 = constant 3.0 :: Exp Double
-d4 = constant 4.0 :: Exp Double
 
 fromList' :: [Double] -> [M.Vector Double] -> [M.Vector Double]
 fromList' [] result = L.reverse result
