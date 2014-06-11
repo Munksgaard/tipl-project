@@ -90,7 +90,6 @@ solver :: (Ord a, Field a) => Vector a -> Matrix a -> Vector a
 solver rhs waa =
     if (rhs @> 0) > 0 then
         inv waa `mXv` rhs
-        -- fromList [(inv waa `mXv` rhs @> 0), rhs @> 1 / waa @@> (1,1)]
     else
         fromList [0, 0]
 
