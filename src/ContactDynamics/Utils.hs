@@ -10,6 +10,7 @@ extF n = L.replicate 2 (M.fromList [0,-1,0,0,0,0])
                    (M.fromList [0,0,0,0,0,0])
 
 set :: Int -> a -> [a] -> [a]
+set 0 x (_:xs) = x:xs
 set i x xs =
   take (i-1) xs ++ x : drop i xs
 
