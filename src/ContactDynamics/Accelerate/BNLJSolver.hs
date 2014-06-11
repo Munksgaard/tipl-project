@@ -25,7 +25,7 @@ d3 = constant 3.0 :: Exp Double
 d4 = constant 4.0 :: Exp Double
 
 fromList' :: [Double] -> [M.Vector Double] -> [M.Vector Double]
-fromList' [] result = result
+fromList' [] result = L.reverse result
 fromList' raw rs = fromList' raw' ((M.fromList r):rs)
   where
     (r, raw') = L.splitAt 2 raw
