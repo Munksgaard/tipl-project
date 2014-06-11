@@ -5,9 +5,11 @@ import Numeric.LinearAlgebra as M
 
 -- Computes the external forces for n contacts
 extF :: Int -> [M.Vector Double]
-extF n = L.replicate 2 (M.fromList [0,-1,0,0,0,0])
+extF levels = L.replicate 2 (M.fromList [0,-1,0,0,0,0])
                 ++ L.replicate (n-2)
                    (M.fromList [0,0,0,0,0,0])
+  where
+    n = 3 * levels * (levels - 1) `div` 2
 
 set :: Int -> a -> [a] -> [a]
 set 0 x (_:xs) = x:xs
